@@ -1,0 +1,35 @@
+{
+  "stopOnError": false,
+  "operations": [
+    {
+      "action": "search",
+      "query": "meeting",
+      "filter": { "property": "object", "value": "page" }
+    },
+    {
+      "action": "create_page",
+      "parent": { "type": "database_id", "database_id": "YOUR_DATABASE_ID" },
+      "properties": {
+        "Name": { "title": [{ "text": { "content": "Batch Created Page" } }] }
+      }
+    },
+    {
+      "action": "append_block",
+      "blockId": "YOUR_PAGE_ID",
+      "blocks": [
+        {
+          "object": "block",
+          "type": "paragraph",
+          "paragraph": {
+            "rich_text": [{ "text": { "content": "Hello from batch!" } }]
+          }
+        }
+      ]
+    },
+    {
+      "action": "create_comment",
+      "parent": { "type": "page_id", "page_id": "YOUR_PAGE_ID" },
+      "rich_text": [{ "text": { "content": "Automated comment from batch" } }]
+    }
+  ]
+}
