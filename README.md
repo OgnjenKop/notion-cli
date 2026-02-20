@@ -16,9 +16,12 @@ A powerful, production-ready command-line interface for interacting with the [No
 - 🧱 **20+ Block Types** - Support for paragraphs, headings, tables, columns, code, and more
 - 📊 **Database Management** - Query databases with filters, sorts, and pagination
 - 📝 **Batch Operations** - Execute multiple operations from JSON files
+- 📤 **Markdown Export** - Export pages and content to well-formatted markdown files
+- 📥 **Batch Export** - Export all child pages from a parent page in one command
 - 🚀 **Built-in Resilience** - Automatic retry logic and rate limiting
 - 📈 **Performance Metrics** - Track API call performance and errors
-- 🎨 **Rich Output** - JSON output and human-readable summaries
+- 🎨 **Rich Output** - JSON, markdown, and human-readable summaries
+- ⚡ **Auto Pagination** - Fetch all content with `--all` flag, no manual cursors
 
 ## 📦 Installation
 
@@ -154,6 +157,15 @@ notion pages delete <pageId>
 # Duplicate a page
 notion pages duplicate <pageId>
 notion pages duplicate <pageId> -p <newParentId> --title "New Title"
+
+# Export a page to markdown
+notion pages export <pageId>
+notion pages export <pageId> -o custom-name.md
+notion pages export <pageId> -d ./output-directory
+
+# Export all child pages from a parent page
+notion pages batch-export <parentPageId>
+notion pages batch-export <parentPageId> -o ./exports
 ```
 
 ### Databases
@@ -194,6 +206,17 @@ notion blocks get <blockId>
 # List blocks in a page
 notion blocks list <pageId>
 notion blocks list <pageId> -n 50
+
+# Fetch ALL blocks with automatic pagination
+notion blocks list <pageId> --all
+
+# Output in different formats
+notion blocks list <pageId> --format markdown
+notion blocks list <pageId> --format json
+notion blocks list <pageId> --format text
+
+# Write markdown output to file
+notion blocks list <pageId> --format markdown -o output.md
 
 # Append blocks
 notion blocks append <pageId> -t paragraph --content "Hello World"
@@ -273,6 +296,37 @@ notion comments list <pageId>
 notion files upload -p <pageId> --url "https://example.com/file.pdf"
 notion files upload -p <pageId> --url "https://example.com/image.png" --caption "My image"
 ```
+
+### Export
+
+Export your Notion content to markdown files for documentation, backups, or static site generation.
+
+```bash
+# Export a single page to markdown
+notion pages export <pageId>
+
+# Specify output file
+notion pages export <pageId> -o my-document.md
+
+# Specify output directory
+notion pages export <pageId> -d ./docs
+
+# Export all child pages from a parent page
+notion pages batch-export <parentPageId>
+
+# Specify output directory for batch export
+notion pages batch-export <parentPageId> -o ./exports
+
+# Export as JSON instead of markdown
+notion pages export <pageId> --json
+```
+
+**Export Features:**
+- Automatic pagination (fetches all content)
+- Sanitized filenames (removes special characters)
+- Proper markdown formatting (headings, lists, code blocks, etc.)
+- Metadata included (URL, created/edited dates)
+- Child pages and databases listed with icons
 
 ### Batch Operations
 

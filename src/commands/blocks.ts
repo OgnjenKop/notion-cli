@@ -13,6 +13,8 @@ import {
   validateStringLength,
   validateEnum,
 } from '../lib/option-validation';
+import { blockToMarkdown } from '../lib/markdown';
+import { Block } from '../lib/types';
 
 export function createBlocksCommand(): Command {
   const blocks = new Command('blocks')
@@ -53,12 +55,21 @@ function createBlockListCommand(): Command {
     .argument('<blockId>', 'Block ID (use page ID for page content)')
     .option('-n, --page-size <number>', 'Number of results per page', '10')
     .option('--start-cursor <cursor>', 'Pagination cursor for next page')
-    .option('--json', 'Output as JSON')
+    .option('--all', 'Fetch all blocks (automatically paginate through all results)')
+    .option('--format <format>', 'Output format (json, markdown, text)', 'text')
+    .option('-o, --output <file>', 'Write output to file (only with --format markdown)')
     .description('List children blocks of a block')
     .action(
       async (
         blockId: string,
-        options: { pageSize: string; startCursor?: string; json?: boolean }
+        options: {
+          pageSize: string;
+          startCursor?: string;
+          all?: boolean;
+          format?: string;
+          output?: string;
+          json?: boolean;
+        }
       ) => {
         try {
           // Validate page size (1-100)
@@ -69,27 +80,71 @@ function createBlockListCommand(): Command {
 
           const client = new NotionClient();
 
-          const result = await client.getBlockChildren(blockId, pageSize, options?.startCursor);
+          // Fetch all blocks if --all flag is set
+          let allBlocks: Block[] = [];
+          let hasMore = false;
+          let nextCursor: string | undefined = options.startCursor;
 
-          if (options?.json) {
-            console.log(formatOutput(result, { json: true }));
+          if (options.all) {
+            // Fetch all blocks with automatic pagination
+            do {
+              const result = await client.getBlockChildren(blockId, pageSize, nextCursor);
+              allBlocks = allBlocks.concat(result.results);
+              hasMore = result.has_more;
+              nextCursor = result.next_cursor || undefined;
+            } while (hasMore && nextCursor);
+          } else {
+            // Fetch single page
+            const result = await client.getBlockChildren(blockId, pageSize, options.startCursor);
+            allBlocks = result.results;
+            hasMore = result.has_more;
+            nextCursor = result.next_cursor || undefined;
+          }
+
+          // Handle --format json (legacy --json option)
+          if (options.format === 'json') {
+            console.log(JSON.stringify({ results: allBlocks, has_more: hasMore }, null, 2));
             return;
           }
 
-          if (result.results.length === 0) {
+          // Handle --format markdown
+          if (options.format === 'markdown') {
+            let markdownContent = '';
+            for (const block of allBlocks) {
+              markdownContent += blockToMarkdown(block);
+            }
+
+            if (options.output) {
+              // Write to file
+              const fs = await import('fs');
+              const path = await import('path');
+              const dir = path.dirname(options.output);
+              if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+              }
+              fs.writeFileSync(options.output, markdownContent, 'utf-8');
+              console.log(`Markdown written to: ${options.output}`);
+            } else {
+              console.log(markdownContent);
+            }
+            return;
+          }
+
+          // Default text format (human-readable)
+          if (allBlocks.length === 0) {
             console.log('No blocks found.');
             return;
           }
 
-          console.log(`Found ${result.results.length} block(s):\n`);
+          console.log(`Found ${allBlocks.length} block(s):\n`);
 
-          result.results.forEach((block: any) => {
+          allBlocks.forEach((block: Block) => {
             printBlockSummary(block);
           });
 
-          if (result.has_more) {
+          if (hasMore && !options.all) {
             console.log(
-              `ℹ More results available. Use --start-cursor "${result.next_cursor}" to fetch the next page.`
+              `ℹ More results available. Use --start-cursor "${nextCursor}" to fetch the next page.`
             );
           }
         } catch (error) {

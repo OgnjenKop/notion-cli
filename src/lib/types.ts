@@ -60,9 +60,9 @@ export interface User extends NotionObject {
 }
 
 /**
- * Rich text content
+ * Rich text item - individual text element with annotations
  */
-export interface RichText {
+export interface RichTextItem {
   type?: 'text' | 'equation' | 'mention';
   text?: {
     content: string;
@@ -79,6 +79,11 @@ export interface RichText {
   plain_text?: string;
   href?: string;
 }
+
+/**
+ * Rich text content (alias for RichTextItem for backwards compatibility)
+ */
+export type RichText = RichTextItem;
 
 /**
  * Page object
@@ -263,7 +268,10 @@ export interface Block extends NotionObject {
   table_row?: { cells: RichText[][] };
 }
 
-export interface BlockContent {
+/**
+ * Block content properties for blocks with rich text
+ */
+export interface BlockContentProps {
   rich_text: RichText[];
   color?: string;
   caption?: RichText[];

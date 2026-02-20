@@ -14,6 +14,8 @@ import {
   validateUrlFormat,
   validateEnum,
 } from '../lib/option-validation';
+import { pageToMarkdown, sanitizeFilename, writeToFile } from '../lib/markdown';
+import { Block } from '../lib/types';
 
 export function createPagesCommand(): Command {
   const pages = new Command('pages')
@@ -23,7 +25,9 @@ export function createPagesCommand(): Command {
     .addCommand(createPageUpdateCommand())
     .addCommand(createPageListCommand())
     .addCommand(createPageDeleteCommand())
-    .addCommand(createPageDuplicateCommand());
+    .addCommand(createPageDuplicateCommand())
+    .addCommand(createPageExportCommand())
+    .addCommand(createPageBatchExportCommand());
 
   return pages;
 }
@@ -314,6 +318,147 @@ function createPageDuplicateCommand(): Command {
           }
         } catch (error) {
           printError('Error duplicating page', getErrorMessage(error));
+          process.exit(1);
+        }
+      }
+    );
+}
+
+/**
+ * Helper function to fetch all blocks from a page with pagination
+ */
+async function getAllBlocks(client: NotionClient, blockId: string): Promise<Block[]> {
+  const allBlocks: Block[] = [];
+  let nextCursor: string | undefined;
+  let hasMore = true;
+
+  while (hasMore) {
+    const result = await client.getBlockChildren(blockId, 100, nextCursor);
+    allBlocks.push(...result.results);
+    hasMore = result.has_more;
+    nextCursor = result.next_cursor || undefined;
+  }
+
+  return allBlocks;
+}
+
+function createPageExportCommand(): Command {
+  return new Command('export')
+    .argument('<pageId>', 'Page ID to export')
+    .option('-o, --output <file>', 'Output file path (default: <page-title>.md in current dir)')
+    .option('-d, --directory <dir>', 'Output directory (default: current directory)')
+    .option('--json', 'Output as JSON instead of markdown')
+    .description('Export a page to markdown file')
+    .action(
+      async (pageId: string, options: { output?: string; directory?: string; json?: boolean }) => {
+        try {
+          const client = new NotionClient();
+
+          // Fetch page metadata
+          const page = await client.getPage(pageId);
+
+          if (options.json) {
+            console.log(JSON.stringify(page, null, 2));
+            return;
+          }
+
+          // Fetch all blocks
+          const blocks = await getAllBlocks(client, pageId);
+
+          // Convert to markdown
+          const markdown = pageToMarkdown(page, blocks);
+
+          // Determine output path
+          let outputPath: string;
+          if (options.output) {
+            outputPath = options.output;
+          } else {
+            const title =
+              page.properties?.title?.title?.map((t) => t.plain_text).join('') ||
+              page.properties?.Name?.title?.map((t) => t.plain_text).join('') ||
+              'untitled';
+            const filename = sanitizeFilename(title) + '.md';
+            outputPath = options.directory ? `${options.directory}/${filename}` : filename;
+          }
+
+          // Write to file
+          writeToFile(outputPath, markdown);
+          printSuccess('Page exported successfully!');
+          console.log(`  File: ${outputPath}`);
+        } catch (error) {
+          printError('Error exporting page', getErrorMessage(error));
+          process.exit(1);
+        }
+      }
+    );
+}
+
+function createPageBatchExportCommand(): Command {
+  return new Command('batch-export')
+    .argument('<parentPageId>', 'Parent page ID to export children from')
+    .option('-o, --output-dir <dir>', 'Output directory (default: ./exports)')
+    .option('--json', 'Output as JSON instead of markdown')
+    .option('-n, --page-size <number>', 'Number of results per page', '100')
+    .description('Export all child pages from a parent page')
+    .action(
+      async (
+        parentPageId: string,
+        options: { outputDir?: string; json?: boolean; pageSize?: string }
+      ) => {
+        try {
+          const client = new NotionClient();
+
+          // Determine output directory
+          const outputDir = options.outputDir || './exports';
+
+          // Fetch all child pages from the parent page
+          const blocks = await getAllBlocks(client, parentPageId);
+          const childPageBlocks = blocks.filter((block) => block.type === 'child_page');
+
+          if (childPageBlocks.length === 0) {
+            console.log('No child pages found.');
+            return;
+          }
+
+          console.log(`Found ${childPageBlocks.length} child page(s). Exporting...\n`);
+
+          let exportedCount = 0;
+          for (const block of childPageBlocks) {
+            const childPageId = block.id;
+            const childTitle =
+              (block as any).child_page?.title || `page-${childPageId.slice(0, 8)}`;
+
+            try {
+              // Fetch child page details
+              const page = await client.getPage(childPageId);
+
+              if (options.json) {
+                const filename = sanitizeFilename(childTitle) + '.json';
+                writeToFile(`${outputDir}/${filename}`, JSON.stringify(page, null, 2));
+              } else {
+                // Fetch all blocks from child page
+                const childBlocks = await getAllBlocks(client, childPageId);
+
+                // Convert to markdown
+                const markdown = pageToMarkdown(page, childBlocks);
+
+                // Write to file
+                const filename = sanitizeFilename(childTitle) + '.md';
+                writeToFile(`${outputDir}/${filename}`, markdown);
+              }
+
+              exportedCount++;
+              console.log(`  ✓ ${childTitle}`);
+            } catch (error) {
+              console.log(`  ✗ ${childTitle}: ${getErrorMessage(error)}`);
+            }
+          }
+
+          printSuccess(`Batch export completed!`);
+          console.log(`  Exported: ${exportedCount}/${childPageBlocks.length} pages`);
+          console.log(`  Directory: ${outputDir}`);
+        } catch (error) {
+          printError('Error during batch export', getErrorMessage(error));
           process.exit(1);
         }
       }
