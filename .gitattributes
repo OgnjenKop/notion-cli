@@ -1,0 +1,5 @@
+# Force TypeScript detection for markdown.ts (contains HTML strings for output)
+src/lib/markdown.ts linguist-language=TypeScript
+
+# Ignore node_modules in language stats
+node_modules/ linguist-vendored=true

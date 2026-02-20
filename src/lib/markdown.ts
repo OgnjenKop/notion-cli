@@ -25,7 +25,7 @@ export function richTextToMarkdown(richText: RichTextItem[]): string {
         text = `~~${text}~~`;
       }
       if (annotations.underline) {
-        text = `<u>${text}</u>`;
+        text = `_${text}_`; // Use italic-style for underline (markdown doesn't support underline)
       }
       if (annotations.code) {
         text = `\`${text}\``;
@@ -94,6 +94,7 @@ export function blockToMarkdown(block: Block): string {
 
     case 'toggle': {
       const toggleText = richTextToMarkdown(content.rich_text);
+      // Use collapsible details element for toggle blocks (GitHub/markdown compatible)
       return `<details><summary>${toggleText}</summary></details>\n\n`;
     }
 
