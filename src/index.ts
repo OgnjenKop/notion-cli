@@ -12,6 +12,7 @@ import { createCommentsCommand } from './commands/comments';
 import { createFilesCommand } from './commands/files';
 import { createBatchCommand } from './commands/batch';
 import { createMetricsCommand } from './commands/metrics';
+import { createDoctorCommand } from './commands/doctor';
 import { CommandExecutionError } from './lib/errors';
 import { getErrorMessage, printError } from './lib/output';
 import { redactSensitiveText } from './lib/redaction';
@@ -41,6 +42,7 @@ program.addCommand(createCommentsCommand());
 program.addCommand(createFilesCommand());
 program.addCommand(createBatchCommand());
 program.addCommand(createMetricsCommand());
+program.addCommand(createDoctorCommand());
 
 function shouldOutputJsonErrors(): boolean {
   return process.argv.includes('--json-errors');

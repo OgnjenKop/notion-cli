@@ -384,6 +384,16 @@ notion metrics show --json
 notion metrics reset
 ```
 
+### Doctor
+
+```bash
+# Run end-to-end diagnostics
+notion doctor
+
+# JSON diagnostics output
+notion doctor --json
+```
+
 ## 🛠 Development
 
 ```bash
