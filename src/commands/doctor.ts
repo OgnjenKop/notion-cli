@@ -86,7 +86,9 @@ async function runDoctor(): Promise<DoctorResult> {
   checks.push({
     name: 'Config file',
     status: fileExists ? 'pass' : 'warn',
-    detail: fileExists ? `${cfgPath} is present` : `${cfgPath} not found (env token may still work)`,
+    detail: fileExists
+      ? `${cfgPath} is present`
+      : `${cfgPath} not found (env token may still work)`,
   });
 
   let config: { token?: string; version?: string } = {};

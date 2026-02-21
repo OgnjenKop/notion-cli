@@ -37,7 +37,9 @@ export function loadConfig(): Config {
       throw new ConfigurationError(`Failed to read config file ${CONFIG_FILE}: ${message}`);
     }
     if (!isJsonErrorMode()) {
-      console.error(redactSensitiveText(`Warning: Failed to read config file ${CONFIG_FILE}: ${message}`));
+      console.error(
+        redactSensitiveText(`Warning: Failed to read config file ${CONFIG_FILE}: ${message}`)
+      );
     }
   }
   return {};

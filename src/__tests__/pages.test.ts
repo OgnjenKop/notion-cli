@@ -22,9 +22,7 @@ describe('Pages Command', () => {
         updatePageFull: jest
           .fn()
           .mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
-        listPages: jest
-          .fn()
-          .mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
+        listPages: jest.fn().mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
         deletePage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
         duplicatePage: jest
           .fn()
@@ -98,12 +96,7 @@ describe('Pages Command', () => {
       const get = pages.commands.find((c: Command) => c.name() === 'get')!;
 
       await expect(
-        get.parseAsync([
-          'node',
-          'test',
-          '--json',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        get.parseAsync(['node', 'test', '--json', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });
@@ -150,11 +143,7 @@ describe('Pages Command', () => {
       const update = pages.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync([
-          'node',
-          'test',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        update.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -178,12 +167,7 @@ describe('Pages Command', () => {
       const update = pages.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync([
-          'node',
-          'test',
-          '--archived',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        update.parseAsync(['node', 'test', '--archived', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });
@@ -203,13 +187,7 @@ describe('Pages Command', () => {
       const list = pages.commands.find((c: Command) => c.name() === 'list')!;
 
       await expect(
-        list.parseAsync([
-          'node',
-          'test',
-          '12345678-1234-1234-1234-123456789012',
-          '-n',
-          '20',
-        ])
+        list.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012', '-n', '20'])
       ).resolves.toBeDefined();
     });
   });
@@ -231,11 +209,7 @@ describe('Pages Command', () => {
       const dup = pages.commands.find((c: Command) => c.name() === 'duplicate')!;
 
       await expect(
-        dup.parseAsync([
-          'node',
-          'test',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        dup.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 

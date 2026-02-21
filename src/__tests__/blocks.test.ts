@@ -20,9 +20,11 @@ describe('Blocks Command', () => {
         getBlockChildren: jest
           .fn()
           .mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
-        appendBlockChildren: jest
-          .fn()
-          .mockResolvedValue({ results: [{ id: 'new-block' }], has_more: false, next_cursor: null }),
+        appendBlockChildren: jest.fn().mockResolvedValue({
+          results: [{ id: 'new-block' }],
+          has_more: false,
+          next_cursor: null,
+        }),
         updateBlock: jest.fn().mockResolvedValue({ id: 'block-1' }),
         deleteBlock: jest.fn().mockResolvedValue({ id: 'block-1' }),
       })),
@@ -89,12 +91,7 @@ describe('Blocks Command', () => {
       const get = blocks.commands.find((c: Command) => c.name() === 'get')!;
 
       await expect(
-        get.parseAsync([
-          'node',
-          'test',
-          '--json',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        get.parseAsync(['node', 'test', '--json', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });
@@ -114,13 +111,7 @@ describe('Blocks Command', () => {
       const list = blocks.commands.find((c: Command) => c.name() === 'list')!;
 
       await expect(
-        list.parseAsync([
-          'node',
-          'test',
-          '-n',
-          '50',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        list.parseAsync(['node', 'test', '-n', '50', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -217,13 +208,7 @@ describe('Blocks Command', () => {
       const append = blocks.commands.find((c: Command) => c.name() === 'append')!;
 
       await expect(
-        append.parseAsync([
-          'node',
-          'test',
-          '-t',
-          'divider',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        append.parseAsync(['node', 'test', '-t', 'divider', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -253,11 +238,7 @@ describe('Blocks Command', () => {
       const update = blocks.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync([
-          'node',
-          'test',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        update.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -281,12 +262,7 @@ describe('Blocks Command', () => {
       const update = blocks.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync([
-          'node',
-          'test',
-          '--checked',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        update.parseAsync(['node', 'test', '--checked', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -295,12 +271,7 @@ describe('Blocks Command', () => {
       const update = blocks.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync([
-          'node',
-          'test',
-          '--unchecked',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        update.parseAsync(['node', 'test', '--unchecked', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });

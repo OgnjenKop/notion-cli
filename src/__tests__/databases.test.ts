@@ -81,12 +81,7 @@ describe('Databases Command', () => {
       const get = databases.commands.find((c: Command) => c.name() === 'get')!;
 
       await expect(
-        get.parseAsync([
-          'node',
-          'test',
-          '--json',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        get.parseAsync(['node', 'test', '--json', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });
@@ -97,11 +92,7 @@ describe('Databases Command', () => {
       const query = databases.commands.find((c: Command) => c.name() === 'query')!;
 
       await expect(
-        query.parseAsync([
-          'node',
-          'test',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        query.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -140,13 +131,7 @@ describe('Databases Command', () => {
       const query = databases.commands.find((c: Command) => c.name() === 'query')!;
 
       await expect(
-        query.parseAsync([
-          'node',
-          'test',
-          '-n',
-          '20',
-          '12345678-1234-1234-1234-123456789012',
-        ])
+        query.parseAsync(['node', 'test', '-n', '20', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });

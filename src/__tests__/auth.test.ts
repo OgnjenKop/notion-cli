@@ -109,7 +109,7 @@ describe('Logout Command', () => {
     const auth: Command = require('../commands/auth').createAuthCommand();
     const logout = auth.commands.find((c: Command) => c.name() === 'logout')!;
 
-    await logout.parseAsync(['node', 'test', ]);
+    await logout.parseAsync(['node', 'test']);
 
     expect(mockSetToken).toHaveBeenCalledWith('');
     expect(console.log).toHaveBeenCalledWith('✓ Token removed successfully!');
@@ -168,7 +168,7 @@ describe('Status Command', () => {
     const auth: Command = require('../commands/auth').createAuthCommand();
     const status = auth.commands.find((c: Command) => c.name() === 'status')!;
 
-    await expect(status.parseAsync(['node', 'test', ])).rejects.toThrow(
+    await expect(status.parseAsync(['node', 'test'])).rejects.toThrow(
       'Connection failed: Invalid token'
     );
   });

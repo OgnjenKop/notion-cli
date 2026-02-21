@@ -1,11 +1,6 @@
 import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
-import {
-  formatOutput,
-  printSuccess,
-  printBlockSummary,
-  throwCommandError,
-} from '../lib/output';
+import { formatOutput, printSuccess, printBlockSummary, throwCommandError } from '../lib/output';
 import { VALID_COLORS, VALID_BLOCK_TYPES } from '../lib/validation';
 import {
   validatePositiveInteger,
