@@ -86,7 +86,7 @@ describe('Login Command', () => {
     const auth: Command = require('../commands/auth').createAuthCommand();
     const login = auth.commands.find((c: Command) => c.name() === 'login')!;
 
-    await login.parseAsync(['node', 'test', 'login']);
+    await login.parseAsync(['node', 'test', 'test-token']);
 
     // Help with next steps is shown
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Next steps'));
@@ -109,7 +109,7 @@ describe('Logout Command', () => {
     const auth: Command = require('../commands/auth').createAuthCommand();
     const logout = auth.commands.find((c: Command) => c.name() === 'logout')!;
 
-    await logout.parseAsync(['node', 'test', 'logout']);
+    await logout.parseAsync(['node', 'test', ]);
 
     expect(mockSetToken).toHaveBeenCalledWith('');
     expect(console.log).toHaveBeenCalledWith('✓ Token removed successfully!');
@@ -132,8 +132,44 @@ describe('Verbose Command', () => {
     const auth: Command = require('../commands/auth').createAuthCommand();
     const verbose = auth.commands.find((c: Command) => c.name() === 'verbose')!;
 
-    await verbose.parseAsync(['node', 'test', 'verbose', 'off']);
+    await verbose.parseAsync(['node', 'test', 'off']);
 
     expect(mockSetVerbose).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('Status Command', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.resetModules();
+    jest.spyOn(console, 'log').mockImplementation();
+    jest.spyOn(console, 'error').mockImplementation();
+  });
+
+  it('should exit with code 1 when connectivity check fails', async () => {
+    jest.mock('../lib/config', () => ({
+      getToken: jest.fn().mockReturnValue('test-token'),
+      loadConfig: jest.fn().mockReturnValue({ version: '2025-09-03', verbose: false }),
+      setToken: jest.fn(),
+      setVersion: jest.fn(),
+      setVerbose: jest.fn(),
+    }));
+
+    jest.mock('../lib/client', () => ({
+      NotionClient: jest.fn().mockImplementation(() => ({
+        getMe: jest.fn().mockRejectedValue(new Error('Invalid token')),
+      })),
+    }));
+
+    jest.mock('../lib/validation', () => ({
+      isValidVersion: jest.fn().mockReturnValue(true),
+    }));
+
+    const auth: Command = require('../commands/auth').createAuthCommand();
+    const status = auth.commands.find((c: Command) => c.name() === 'status')!;
+
+    await expect(status.parseAsync(['node', 'test', ])).rejects.toThrow(
+      'Connection failed: Invalid token'
+    );
   });
 });

@@ -3,10 +3,9 @@ import { NotionClient } from '../lib/client';
 import {
   formatOutput,
   printSuccess,
-  printError,
   printDatabaseSummary,
   printPageSummary,
-  getErrorMessage,
+  throwCommandError,
 } from '../lib/output';
 import { parseJson, validateId } from '../lib/validation';
 import { validatePositiveInteger, validateStringLength } from '../lib/option-validation';
@@ -39,8 +38,7 @@ function createDatabaseGetCommand(): Command {
           printDatabaseSummary(database);
         }
       } catch (error) {
-        printError('Error getting database', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error getting database', error);
       }
     });
 }
@@ -120,8 +118,7 @@ function createDatabaseQueryCommand(): Command {
             );
           }
         } catch (error) {
-          printError('Error querying database', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error querying database', error);
         }
       }
     );
@@ -155,8 +152,7 @@ function createDatabaseListCommand(): Command {
           printDatabaseSummary(db);
         });
       } catch (error) {
-        printError('Error listing databases', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error listing databases', error);
       }
     });
 }
@@ -212,8 +208,7 @@ function createDatabaseCreateCommand(): Command {
             console.log(formatOutput(database, { json: true }));
           }
         } catch (error) {
-          printError('Error creating database', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error creating database', error);
         }
       }
     );

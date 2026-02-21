@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { getToken, setToken, setVersion, loadConfig, setVerbose } from '../lib/config';
 import { NotionClient } from '../lib/client';
 import { isValidVersion } from '../lib/validation';
-import { getErrorMessage } from '../lib/output';
+import { throwCommandError } from '../lib/output';
 
 export function createAuthCommand(): Command {
   const auth = new Command('auth');
@@ -24,11 +24,11 @@ function createLoginCommand(): Command {
     .description('Configure Notion API token')
     .action((token?: string) => {
       if (!token) {
-        // Try to read from stdin or prompt
-        console.log('Please provide your Notion integration token.');
-        console.log('Usage: notion auth login <token>');
-        console.log('\nYou can create a token at: https://www.notion.so/my-integrations');
-        process.exit(1);
+        throwCommandError(
+          'Missing token',
+          'Usage: notion auth login <token>\nCreate a token at: https://www.notion.so/my-integrations',
+          { code: 'USAGE_ERROR' }
+        );
       }
 
       setToken(token);
@@ -67,7 +67,7 @@ function createStatusCommand(): Command {
         console.log(`\nConnected as: ${user.name} (${user.type})`);
         console.log(`Workspace: ${user.bot?.workspace_name || 'N/A'}`);
       } catch (error) {
-        console.log(`\n✗ Connection failed: ${getErrorMessage(error)}`);
+        throwCommandError('Connection failed', error);
       }
     }
   });
@@ -79,8 +79,11 @@ function createSetVersionCommand(): Command {
     .description('Set Notion API version')
     .action((version: string) => {
       if (!isValidVersion(version)) {
-        console.error('Invalid version format. Please use YYYY-MM-DD format (e.g., 2025-09-03)');
-        process.exit(1);
+        throwCommandError(
+          'Invalid version format',
+          'Please use YYYY-MM-DD format (e.g., 2025-09-03)',
+          { code: 'USAGE_ERROR' }
+        );
       }
 
       setVersion(version);

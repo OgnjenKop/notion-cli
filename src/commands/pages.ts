@@ -3,9 +3,9 @@ import { NotionClient } from '../lib/client';
 import {
   formatOutput,
   printSuccess,
-  printError,
   printPageSummary,
   getErrorMessage,
+  throwCommandError,
 } from '../lib/output';
 import { validateId } from '../lib/validation';
 import {
@@ -48,8 +48,7 @@ function createPageGetCommand(): Command {
           printPageSummary(page);
         }
       } catch (error) {
-        printError('Error getting page', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error getting page', error);
       }
     });
 }
@@ -134,8 +133,7 @@ function createPageCreateCommand(): Command {
             console.log(formatOutput(page, { json: true }));
           }
         } catch (error) {
-          printError('Error creating page', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error creating page', error);
         }
       }
     );
@@ -204,8 +202,7 @@ function createPageUpdateCommand(): Command {
             console.log(formatOutput(page, { json: true }));
           }
         } catch (error) {
-          printError('Error updating page', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error updating page', error);
         }
       }
     );
@@ -256,8 +253,7 @@ function createPageListCommand(): Command {
             );
           }
         } catch (error) {
-          printError('Error listing pages', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error listing pages', error);
         }
       }
     );
@@ -276,8 +272,7 @@ function createPageDeleteCommand(): Command {
         printSuccess('Page archived (deleted) successfully!', options?.quiet);
         console.log(`URL: ${page.url}`);
       } catch (error) {
-        printError('Error archiving page', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error archiving page', error);
       }
     });
 }
@@ -317,8 +312,7 @@ function createPageDuplicateCommand(): Command {
             console.log(formatOutput(page, { json: true }));
           }
         } catch (error) {
-          printError('Error duplicating page', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error duplicating page', error);
         }
       }
     );
@@ -386,8 +380,7 @@ function createPageExportCommand(): Command {
           printSuccess('Page exported successfully!');
           console.log(`  File: ${outputPath}`);
         } catch (error) {
-          printError('Error exporting page', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error exporting page', error);
         }
       }
     );
@@ -423,6 +416,7 @@ function createPageBatchExportCommand(): Command {
           console.log(`Found ${childPageBlocks.length} child page(s). Exporting...\n`);
 
           let exportedCount = 0;
+          let hasErrors = false;
           for (const block of childPageBlocks) {
             const childPageId = block.id;
             const childTitle =
@@ -450,6 +444,7 @@ function createPageBatchExportCommand(): Command {
               exportedCount++;
               console.log(`  ✓ ${childTitle}`);
             } catch (error) {
+              hasErrors = true;
               console.log(`  ✗ ${childTitle}: ${getErrorMessage(error)}`);
             }
           }
@@ -457,9 +452,11 @@ function createPageBatchExportCommand(): Command {
           printSuccess(`Batch export completed!`);
           console.log(`  Exported: ${exportedCount}/${childPageBlocks.length} pages`);
           console.log(`  Directory: ${outputDir}`);
+          if (hasErrors) {
+            process.exitCode = 1;
+          }
         } catch (error) {
-          printError('Error during batch export', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error during batch export', error);
         }
       }
     );

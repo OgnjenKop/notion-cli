@@ -235,6 +235,14 @@ describe('createErrorFromStatus', () => {
     expect(error.status).toBe(404);
   });
 
+  it('should preserve message and response for 404 errors', () => {
+    const response = { code: 'object_not_found', object: 'error' };
+    const error = createErrorFromStatus(404, 'Page not found', response);
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.message).toBe('Page not found');
+    expect(error.response).toEqual(response);
+  });
+
   it('should create ConflictError for 409', () => {
     const error = createErrorFromStatus(409, 'Conflict');
     expect(error).toBeInstanceOf(ConflictError);

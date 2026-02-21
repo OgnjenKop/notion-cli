@@ -3,9 +3,8 @@ import { NotionClient } from '../lib/client';
 import {
   formatOutput,
   printSuccess,
-  printError,
   printBlockSummary,
-  getErrorMessage,
+  throwCommandError,
 } from '../lib/output';
 import { VALID_COLORS, VALID_BLOCK_TYPES } from '../lib/validation';
 import {
@@ -44,8 +43,7 @@ function createBlockGetCommand(): Command {
           printBlockSummary(block);
         }
       } catch (error) {
-        printError('Error getting block', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error getting block', error);
       }
     });
 }
@@ -148,8 +146,7 @@ function createBlockListCommand(): Command {
             );
           }
         } catch (error) {
-          printError('Error listing blocks', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error listing blocks', error);
         }
       }
     );
@@ -225,8 +222,7 @@ function createBlockAppendCommand(): Command {
                 throw new Error('Cells must be a JSON array of strings');
               }
             } catch (error) {
-              printError('Invalid cells JSON', getErrorMessage(error));
-              process.exit(1);
+              throwCommandError('Invalid cells JSON', error);
             }
           }
 
@@ -239,8 +235,7 @@ function createBlockAppendCommand(): Command {
                 throw new Error('Children must be a JSON array of blocks');
               }
             } catch (error) {
-              printError('Invalid children JSON', getErrorMessage(error));
-              process.exit(1);
+              throwCommandError('Invalid children JSON', error);
             }
           }
 
@@ -271,8 +266,7 @@ function createBlockAppendCommand(): Command {
             console.log(formatOutput(result, { json: true }));
           }
         } catch (error) {
-          printError('Error appending block', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error appending block', error);
         }
       }
     );
@@ -291,8 +285,7 @@ function createBlockDeleteCommand(): Command {
 
         printSuccess('Block deleted successfully!', options?.quiet);
       } catch (error) {
-        printError('Error deleting block', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error deleting block', error);
       }
     });
 }
@@ -347,8 +340,7 @@ function createBlockUpdateCommand(): Command {
             console.log(formatOutput(result, { json: true }));
           }
         } catch (error) {
-          printError('Error updating block', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error updating block', error);
         }
       }
     );

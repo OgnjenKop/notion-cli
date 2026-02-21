@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
-import { formatOutput, printSuccess, printError, getErrorMessage } from '../lib/output';
+import { formatOutput, printSuccess, throwCommandError } from '../lib/output';
 import { validateId } from '../lib/validation';
 import { validateStringLength, validateUrlFormat } from '../lib/option-validation';
 
@@ -61,8 +61,7 @@ function createFileUploadCommand(): Command {
             console.log(formatOutput(result, { json: true }));
           }
         } catch (error) {
-          printError('Error uploading file', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error uploading file', error);
         }
       }
     );

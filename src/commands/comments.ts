@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
-import { formatOutput, printSuccess, printError, getErrorMessage } from '../lib/output';
+import { formatOutput, printSuccess, throwCommandError } from '../lib/output';
 import { validateStringLength, validateOnlyOne } from '../lib/option-validation';
 
 export function createCommentsCommand(): Command {
@@ -58,8 +58,7 @@ function createCommentCreateCommand(): Command {
             console.log(formatOutput(comment, { json: true }));
           }
         } catch (error) {
-          printError('Error creating comment', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error creating comment', error);
         }
       }
     );
@@ -103,8 +102,7 @@ function createCommentListCommand(): Command {
           console.log('');
         });
       } catch (error) {
-        printError('Error listing comments', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error listing comments', error);
       }
     });
 }

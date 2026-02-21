@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { ConfigurationError } from './errors';
+import { redactSensitiveText } from './redaction';
 
 const CONFIG_DIR = path.join(os.homedir(), '.notion-cli');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
@@ -17,14 +19,26 @@ export function ensureConfigDir(): void {
   }
 }
 
+function isJsonErrorMode(): boolean {
+  return process.argv.includes('--json-errors');
+}
+
 export function loadConfig(): Config {
+  if (!fs.existsSync(CONFIG_FILE)) {
+    return {};
+  }
+
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      return JSON.parse(data);
+    const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    const message = (error as Error).message || 'Unknown error';
+    if (process.env.NOTION_STRICT_CONFIG === 'true') {
+      throw new ConfigurationError(`Failed to read config file ${CONFIG_FILE}: ${message}`);
     }
-  } catch {
-    // Return empty config if file is corrupted or unreadable
+    if (!isJsonErrorMode()) {
+      console.error(redactSensitiveText(`Warning: Failed to read config file ${CONFIG_FILE}: ${message}`));
+    }
   }
   return {};
 }

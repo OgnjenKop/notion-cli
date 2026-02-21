@@ -14,6 +14,7 @@ import {
   printBlockSummary,
   getPageTitle,
   getBlockContent,
+  getErrorMessage,
 } from '../lib/output';
 import { Page, Database, User, Block } from '../lib/types';
 
@@ -96,6 +97,22 @@ describe('printError', () => {
     expect(consoleSpy).toHaveBeenCalledWith('✗ Error occurred');
     expect(consoleSpy).toHaveBeenCalledWith('  Detailed error message');
     consoleSpy.mockRestore();
+  });
+
+  it('should redact sensitive values in error output', () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    printError('Auth failed', 'Authorization: Bearer secret_abc123');
+
+    expect(consoleSpy).toHaveBeenCalledWith('  Authorization: Bearer [REDACTED]');
+    consoleSpy.mockRestore();
+  });
+});
+
+describe('getErrorMessage', () => {
+  it('should redact sensitive values from thrown Error messages', () => {
+    const msg = getErrorMessage(new Error('NOTION_TOKEN=secret_abc123'));
+    expect(msg).toBe('NOTION_TOKEN=[REDACTED]');
   });
 });
 

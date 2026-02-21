@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { NotionClient, SearchOptions } from '../lib/client';
-import { formatOutput, printSuccess, printError, getErrorMessage } from '../lib/output';
+import { formatOutput, printSuccess, throwCommandError } from '../lib/output';
 import { validatePositiveInteger, validateEnum } from '../lib/option-validation';
 
 export function createSearchCommand(): Command {
@@ -81,8 +81,7 @@ export function createSearchCommand(): Command {
             );
           }
         } catch (error) {
-          printError('Error searching', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error searching', error);
         }
       }
     );

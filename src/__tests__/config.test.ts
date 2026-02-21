@@ -78,6 +78,7 @@ describe('Config Module', () => {
     });
 
     it('should return empty config if file is corrupted', () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValue('invalid json');
 
@@ -85,6 +86,10 @@ describe('Config Module', () => {
       const config = loadConfig();
 
       expect(config).toEqual({});
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Warning: Failed to read config file')
+      );
+      consoleSpy.mockRestore();
     });
   });
 

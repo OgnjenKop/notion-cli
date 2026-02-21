@@ -19,6 +19,8 @@ A powerful, production-ready command-line interface for interacting with the [No
 - 📤 **Markdown Export** - Export pages and content to well-formatted markdown files
 - 📥 **Batch Export** - Export all child pages from a parent page in one command
 - 🚀 **Built-in Resilience** - Automatic retry logic and rate limiting
+- 🛡️ **Robust Error Handling** - Standardized errors, exit codes, and JSON error mode
+- 🔒 **Secret Redaction** - Sensitive tokens/credentials are masked in errors and verbose logs
 - 📈 **Performance Metrics** - Track API call performance and errors
 - 🎨 **Rich Output** - JSON, markdown, and human-readable summaries
 - ⚡ **Auto Pagination** - Fetch all content with `--all` flag, no manual cursors
@@ -343,6 +345,8 @@ notion batch run -f operations.json --dry-run
 notion batch run -f operations.json --json
 ```
 
+`notion batch run` returns a non-zero exit code when one or more operations fail (even when execution continues for remaining operations).
+
 **Example `operations.json`:**
 
 ```json
@@ -404,7 +408,7 @@ npm run typecheck
 
 ## 📊 Test Coverage
 
-The project includes a comprehensive test suite with **293 tests** covering:
+The project includes a comprehensive test suite with **300+ tests** covering:
 
 - Error handling and custom error classes
 - Input validation (ID, URL, email, date, enum)
@@ -431,6 +435,25 @@ The project includes a comprehensive test suite with **293 tests** covering:
 |----------|-------------|
 | `NOTION_TOKEN` | Override the stored API token |
 | `NOTION_VERBOSE` | Set to `true` to enable verbose logging |
+| `NOTION_STRICT_CONFIG` | Set to `true` to fail fast when config file is unreadable/corrupt |
+
+### Error Output Modes
+
+Use standard human-readable errors by default, or JSON for machine consumers.
+
+```bash
+# Human-readable errors (default)
+notion pages get bad-id
+
+# Structured errors on stderr (for scripts/automation)
+notion --json-errors pages get bad-id
+```
+
+Notes:
+- `--help` and `--version` exit with code `0`.
+- Command/usage/runtime failures exit non-zero.
+- In `--json-errors` mode, errors are emitted as JSON on stderr.
+- Sensitive values (tokens/credentials) are redacted from error output and verbose logs.
 
 ### API Version
 

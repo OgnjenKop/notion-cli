@@ -15,6 +15,7 @@ import {
 } from './types';
 import { validateId } from './validation';
 import { NotionError, createErrorFromStatus, extractErrorInfo } from './errors';
+import { redactSensitiveText, stringifyRedacted } from './redaction';
 
 const BASE_URL = 'https://api.notion.com/v1';
 const RATE_LIMIT_DELAY_MS = 350; // Notion allows ~3 requests/second, use 350ms for safety
@@ -142,9 +143,9 @@ export class NotionClient {
       }
       this.lastRequestTime = Date.now();
 
-      logVerbose(`Request: ${config.method?.toUpperCase()} ${config.url}`);
+      logVerbose(redactSensitiveText(`Request: ${config.method?.toUpperCase()} ${config.url}`));
       if (config.data) {
-        logVerbose(`Request body: ${JSON.stringify(config.data, null, 2)}`);
+        logVerbose(`Request body: ${stringifyRedacted(config.data, 2)}`);
       }
       return config;
     });
@@ -157,7 +158,7 @@ export class NotionClient {
       (error: AxiosError) => {
         const errorInfo = extractErrorInfo(error);
         logVerbose(
-          `Error: ${errorInfo.status || 'Unknown'} - ${JSON.stringify(errorInfo.response)}`
+          `Error: ${errorInfo.status || 'Unknown'} - ${stringifyRedacted(errorInfo.response)}`
         );
 
         // Create appropriate error based on status code
@@ -223,7 +224,16 @@ export class NotionClient {
       }
     }
 
-    throw lastError;
+    const context = `${operation} failed after ${attempts} attempt(s)`;
+
+    if (lastError instanceof Error) {
+      if (!lastError.message.startsWith(context)) {
+        lastError.message = `${context}: ${lastError.message}`;
+      }
+      throw lastError;
+    }
+
+    throw new NotionError(`${context}: Unknown error`, 'REQUEST_FAILED');
   }
 
   /**

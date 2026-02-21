@@ -70,8 +70,13 @@ export class AuthorizationError extends NotionError {
  * Error thrown when a resource is not found
  */
 export class NotFoundError extends NotionError {
-  constructor(resource: string = 'Resource', id: string = 'unknown') {
-    super(`${resource} not found: ${id}`, 'NOT_FOUND', 404);
+  constructor(
+    resource: string = 'Resource',
+    id: string = 'unknown',
+    response?: unknown,
+    message?: string
+  ) {
+    super(message || `${resource} not found: ${id}`, 'NOT_FOUND', 404, response);
     this.name = 'NotFoundError';
   }
 }
@@ -152,6 +157,47 @@ export class FileError extends NotionError {
 }
 
 /**
+ * Error thrown by command handlers for user-facing CLI failures.
+ * The top-level CLI parser catches this and renders standardized output.
+ */
+export class CommandExecutionError extends Error {
+  public readonly title: string;
+  public readonly detail?: string | undefined;
+  public readonly exitCode: number;
+  public readonly code?: string | undefined;
+  public readonly status?: number | undefined;
+  public readonly cause?: unknown;
+
+  constructor(
+    title: string,
+    detail?: string | undefined,
+    options?: {
+      exitCode?: number;
+      code?: string | undefined;
+      status?: number | undefined;
+      cause?: unknown;
+    }
+  ) {
+    super(detail ? `${title}: ${detail}` : title);
+    this.name = 'CommandExecutionError';
+    this.title = title;
+    this.exitCode = options?.exitCode ?? 1;
+    if (detail !== undefined) {
+      this.detail = detail;
+    }
+    if (options?.code !== undefined) {
+      this.code = options.code;
+    }
+    if (options?.status !== undefined) {
+      this.status = options.status;
+    }
+    if (options?.cause !== undefined) {
+      this.cause = options.cause;
+    }
+  }
+}
+
+/**
  * Map HTTP status codes to appropriate error classes
  */
 export function createErrorFromStatus(
@@ -165,7 +211,7 @@ export function createErrorFromStatus(
     case 403:
       return new AuthorizationError(message, response);
     case 404:
-      return new NotFoundError();
+      return new NotFoundError('Resource', 'unknown', response, message);
     case 409:
       return new ConflictError(message, response);
     case 429:

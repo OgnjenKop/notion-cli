@@ -3,6 +3,8 @@
  */
 
 import { Page, Database, User, Block } from './types';
+import { CommandExecutionError, NotionError } from './errors';
+import { redactSensitiveText } from './redaction';
 
 export interface OutputOptions {
   json?: boolean;
@@ -47,9 +49,9 @@ export function printSuccess(message: string, quiet?: boolean): void {
  * Print error message
  */
 export function printError(message: string, error?: string): void {
-  console.error(`✗ ${message}`);
+  console.error(`✗ ${redactSensitiveText(message)}`);
   if (error) {
-    console.error(`  ${error}`);
+    console.error(`  ${redactSensitiveText(error)}`);
   }
 }
 
@@ -172,10 +174,42 @@ export function getBlockContent(block: Block): string {
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    return error.message;
+    return redactSensitiveText(error.message);
   }
   if (typeof error === 'string') {
-    return error;
+    return redactSensitiveText(error);
   }
   return 'Unknown error';
+}
+
+/**
+ * Create and throw a standardized command error for top-level handling.
+ */
+export function throwCommandError(
+  title: string,
+  error: unknown,
+  options?: { exitCode?: number; code?: string | undefined; status?: number | undefined }
+): never {
+  if (error instanceof CommandExecutionError) {
+    throw error;
+  }
+
+  const detail = getErrorMessage(error);
+
+  if (error instanceof NotionError) {
+    const exitCode = options?.exitCode ?? (error.code === 'VALIDATION_ERROR' ? 2 : 1);
+    throw new CommandExecutionError(title, detail, {
+      exitCode,
+      code: options?.code || error.code,
+      status: options?.status ?? error.status,
+      cause: error,
+    });
+  }
+
+  throw new CommandExecutionError(title, detail, {
+    exitCode: options?.exitCode ?? 1,
+    code: options?.code,
+    status: options?.status,
+    cause: error,
+  });
 }

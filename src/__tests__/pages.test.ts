@@ -16,12 +16,19 @@ describe('Pages Command', () => {
 
     jest.mock('../lib/client', () => ({
       NotionClient: jest.fn().mockImplementation(() => ({
-        getPage: jest.fn(),
-        createPage: jest.fn(),
-        updatePage: jest.fn(),
-        listPages: jest.fn(),
-        deletePage: jest.fn(),
-        duplicatePage: jest.fn(),
+        getPage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
+        createPage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
+        updatePage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
+        updatePageFull: jest
+          .fn()
+          .mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
+        listPages: jest
+          .fn()
+          .mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
+        deletePage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
+        duplicatePage: jest
+          .fn()
+          .mockResolvedValue({ id: 'page-2', url: 'https://notion.so/page-2' }),
       })),
     }));
 
@@ -31,6 +38,9 @@ describe('Pages Command', () => {
       printError: jest.fn(),
       printPageSummary: jest.fn(),
       getErrorMessage: jest.fn((error) => (error instanceof Error ? error.message : String(error))),
+      throwCommandError: jest.fn((title, error) => {
+        throw new Error(`${title}: ${error instanceof Error ? error.message : String(error)}`);
+      }),
     }));
 
     pagesCommand = require('../commands/pages').createPagesCommand();
@@ -79,7 +89,7 @@ describe('Pages Command', () => {
       const get = pages.commands.find((c: Command) => c.name() === 'get')!;
 
       await expect(
-        get.parseAsync(['node', 'test', 'pages', 'get', '12345678-1234-1234-1234-123456789012'])
+        get.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -91,8 +101,6 @@ describe('Pages Command', () => {
         get.parseAsync([
           'node',
           'test',
-          'pages',
-          'get',
           '--json',
           '12345678-1234-1234-1234-123456789012',
         ])
@@ -109,8 +117,6 @@ describe('Pages Command', () => {
         create.parseAsync([
           'node',
           'test',
-          'pages',
-          'create',
           '-p',
           '12345678-1234-1234-1234-123456789012',
           '-t',
@@ -127,8 +133,6 @@ describe('Pages Command', () => {
         create.parseAsync([
           'node',
           'test',
-          'pages',
-          'create',
           '-p',
           '12345678-1234-1234-1234-123456789012',
           '-t',
@@ -149,8 +153,6 @@ describe('Pages Command', () => {
         update.parseAsync([
           'node',
           'test',
-          'pages',
-          'update',
           '12345678-1234-1234-1234-123456789012',
         ])
       ).resolves.toBeDefined();
@@ -164,8 +166,6 @@ describe('Pages Command', () => {
         update.parseAsync([
           'node',
           'test',
-          'pages',
-          'update',
           '--title',
           'Updated Title',
           '12345678-1234-1234-1234-123456789012',
@@ -181,8 +181,6 @@ describe('Pages Command', () => {
         update.parseAsync([
           'node',
           'test',
-          'pages',
-          'update',
           '--archived',
           '12345678-1234-1234-1234-123456789012',
         ])
@@ -196,7 +194,7 @@ describe('Pages Command', () => {
       const list = pages.commands.find((c: Command) => c.name() === 'list')!;
 
       await expect(
-        list.parseAsync(['node', 'test', 'pages', 'list', '12345678-1234-1234-1234-123456789012'])
+        list.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -208,8 +206,6 @@ describe('Pages Command', () => {
         list.parseAsync([
           'node',
           'test',
-          'pages',
-          'list',
           '12345678-1234-1234-1234-123456789012',
           '-n',
           '20',
@@ -224,7 +220,7 @@ describe('Pages Command', () => {
       const del = pages.commands.find((c: Command) => c.name() === 'delete')!;
 
       await expect(
-        del.parseAsync(['node', 'test', 'pages', 'delete', '12345678-1234-1234-1234-123456789012'])
+        del.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
   });
@@ -238,8 +234,6 @@ describe('Pages Command', () => {
         dup.parseAsync([
           'node',
           'test',
-          'pages',
-          'duplicate',
           '12345678-1234-1234-1234-123456789012',
         ])
       ).resolves.toBeDefined();
@@ -253,8 +247,6 @@ describe('Pages Command', () => {
         dup.parseAsync([
           'node',
           'test',
-          'pages',
-          'duplicate',
           '-p',
           '12345678-1234-1234-1234-123456789abc',
           '12345678-1234-1234-1234-123456789012',
@@ -270,8 +262,6 @@ describe('Pages Command', () => {
         dup.parseAsync([
           'node',
           'test',
-          'pages',
-          'duplicate',
           '--title',
           'Duplicated Page',
           '12345678-1234-1234-1234-123456789012',

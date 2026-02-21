@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
-import { formatOutput, printError, printUserSummary, getErrorMessage } from '../lib/output';
+import { formatOutput, printUserSummary, throwCommandError } from '../lib/output';
 import { validatePositiveInteger } from '../lib/option-validation';
 
 export function createUsersCommand(): Command {
@@ -51,8 +51,7 @@ function createUserListCommand(): Command {
           );
         }
       } catch (error) {
-        printError('Error listing users', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error listing users', error);
       }
     });
 }
@@ -73,8 +72,7 @@ function createUserGetCommand(): Command {
           printUserSummary(user);
         }
       } catch (error) {
-        printError('Error getting user', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error getting user', error);
       }
     });
 }
@@ -98,8 +96,7 @@ function createUserMeCommand(): Command {
           console.log(`  Workspace Name: ${user.bot?.workspace_name || 'N/A'}`);
         }
       } catch (error) {
-        printError('Error getting bot info', getErrorMessage(error));
-        process.exit(1);
+        throwCommandError('Error getting bot info', error);
       }
     });
 }

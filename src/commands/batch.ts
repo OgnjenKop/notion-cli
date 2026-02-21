@@ -1,7 +1,14 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import { NotionClient } from '../lib/client';
-import { formatOutput, printSuccess, printError, printInfo, getErrorMessage } from '../lib/output';
+import {
+  formatOutput,
+  printSuccess,
+  printError,
+  printInfo,
+  getErrorMessage,
+  throwCommandError,
+} from '../lib/output';
 
 export function createBatchCommand(): Command {
   const batch = new Command('batch')
@@ -27,14 +34,14 @@ function createBatchRunCommand(): Command {
             const content = fs.readFileSync(options.file, 'utf-8');
             batchData = JSON.parse(content);
           } catch (e: any) {
-            printError('Error reading batch file', e.message);
-            process.exit(1);
+            throwCommandError('Error reading batch file', e, { code: 'USAGE_ERROR' });
           }
 
           const operations = batchData.operations || [];
           if (operations.length === 0) {
-            printError('Validation error', 'No operations found in batch file');
-            process.exit(1);
+            throwCommandError('Validation error', 'No operations found in batch file', {
+              code: 'USAGE_ERROR',
+            });
           }
 
           if (!options.quiet) {
@@ -43,6 +50,7 @@ function createBatchRunCommand(): Command {
 
           const client = new NotionClient();
           const results: any[] = [];
+          let hasOperationErrors = false;
 
           for (let i = 0; i < operations.length; i++) {
             const op = operations[i];
@@ -70,6 +78,7 @@ function createBatchRunCommand(): Command {
             } catch (error) {
               const errorMsg = getErrorMessage(error);
               results.push({ operation: op, status: 'error', error: errorMsg });
+              hasOperationErrors = true;
 
               printError('Operation failed', errorMsg);
 
@@ -88,9 +97,13 @@ function createBatchRunCommand(): Command {
             const errorCount = results.filter((r) => r.status === 'error').length;
             console.log(`\nBatch complete: ${successCount} succeeded, ${errorCount} failed`);
           }
+
+          // Signal partial failures to calling scripts/CI while preserving complete output.
+          if (hasOperationErrors) {
+            process.exitCode = 1;
+          }
         } catch (error) {
-          printError('Error executing batch', getErrorMessage(error));
-          process.exit(1);
+          throwCommandError('Error executing batch', error);
         }
       }
     );

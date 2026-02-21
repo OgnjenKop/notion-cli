@@ -16,10 +16,12 @@ describe('Databases Command', () => {
 
     jest.mock('../lib/client', () => ({
       NotionClient: jest.fn().mockImplementation(() => ({
-        getDatabase: jest.fn(),
-        queryDatabase: jest.fn(),
-        createDatabase: jest.fn(),
-        search: jest.fn(),
+        getDatabase: jest.fn().mockResolvedValue({ id: 'db-1', url: 'https://notion.so/db-1' }),
+        queryDatabase: jest
+          .fn()
+          .mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
+        createDatabase: jest.fn().mockResolvedValue({ id: 'db-1', url: 'https://notion.so/db-1' }),
+        search: jest.fn().mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
       })),
     }));
 
@@ -29,6 +31,9 @@ describe('Databases Command', () => {
       printError: jest.fn(),
       printDatabaseSummary: jest.fn(),
       getErrorMessage: jest.fn((error) => (error instanceof Error ? error.message : String(error))),
+      throwCommandError: jest.fn((title, error) => {
+        throw new Error(`${title}: ${error instanceof Error ? error.message : String(error)}`);
+      }),
     }));
 
     databasesCommand = require('../commands/databases').createDatabasesCommand();
@@ -67,7 +72,7 @@ describe('Databases Command', () => {
       const get = databases.commands.find((c: Command) => c.name() === 'get')!;
 
       await expect(
-        get.parseAsync(['node', 'test', 'databases', 'get', '12345678-1234-1234-1234-123456789012'])
+        get.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 
@@ -79,8 +84,6 @@ describe('Databases Command', () => {
         get.parseAsync([
           'node',
           'test',
-          'databases',
-          'get',
           '--json',
           '12345678-1234-1234-1234-123456789012',
         ])
@@ -97,8 +100,6 @@ describe('Databases Command', () => {
         query.parseAsync([
           'node',
           'test',
-          'databases',
-          'query',
           '12345678-1234-1234-1234-123456789012',
         ])
       ).resolves.toBeDefined();
@@ -112,8 +113,6 @@ describe('Databases Command', () => {
         query.parseAsync([
           'node',
           'test',
-          'databases',
-          'query',
           '-f',
           '{"property":"Status","select":{"equals":"Done"}}',
           '12345678-1234-1234-1234-123456789012',
@@ -129,8 +128,6 @@ describe('Databases Command', () => {
         query.parseAsync([
           'node',
           'test',
-          'databases',
-          'query',
           '-s',
           '{"property":"Created","direction":"descending"}',
           '12345678-1234-1234-1234-123456789012',
@@ -146,8 +143,6 @@ describe('Databases Command', () => {
         query.parseAsync([
           'node',
           'test',
-          'databases',
-          'query',
           '-n',
           '20',
           '12345678-1234-1234-1234-123456789012',
@@ -165,8 +160,6 @@ describe('Databases Command', () => {
         create.parseAsync([
           'node',
           'test',
-          'databases',
-          'create',
           '-p',
           '12345678-1234-1234-1234-123456789012',
           '--title',
@@ -183,16 +176,14 @@ describe('Databases Command', () => {
       const databases: Command = require('../commands/databases').createDatabasesCommand();
       const list = databases.commands.find((c: Command) => c.name() === 'list')!;
 
-      await expect(list.parseAsync(['node', 'test', 'databases', 'list'])).resolves.toBeDefined();
+      await expect(list.parseAsync(['node', 'test'])).resolves.toBeDefined();
     });
 
-    it('should accept page-size option', async () => {
+    it('should accept json option', async () => {
       const databases: Command = require('../commands/databases').createDatabasesCommand();
       const list = databases.commands.find((c: Command) => c.name() === 'list')!;
 
-      await expect(
-        list.parseAsync(['node', 'test', 'databases', 'list', '-n', '20'])
-      ).resolves.toBeDefined();
+      await expect(list.parseAsync(['node', 'test', '--json'])).resolves.toBeDefined();
     });
   });
 });
