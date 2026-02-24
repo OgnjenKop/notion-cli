@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
 import { formatOutput, printSuccess, throwCommandError } from '../lib/output';
 import { validateStringLength, validateOnlyOne } from '../lib/option-validation';
+import { validateId } from '../lib/validation';
 
 export function createCommentsCommand(): Command {
   const comments = new Command('comments')
@@ -37,6 +38,13 @@ function createCommentCreateCommand(): Command {
             ],
             'Comment creation'
           );
+
+          if (options.parentPage) {
+            validateId(options.parentPage, 'Parent page ID');
+          }
+          if (options.discussionId) {
+            validateId(options.discussionId, 'Discussion ID');
+          }
 
           // Validate text length
           validateStringLength(options.text, 'Comment text', { min: 1, max: 2000 });

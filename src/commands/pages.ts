@@ -13,6 +13,7 @@ import {
   validateStringLength,
   validateUrlFormat,
   validateEnum,
+  validateAtLeastOne,
 } from '../lib/option-validation';
 import { pageToMarkdownTree, sanitizeFilename, writeToFile } from '../lib/markdown';
 import { Block } from '../lib/types';
@@ -164,6 +165,16 @@ function createPageUpdateCommand(): Command {
         }
       ) => {
         try {
+          validateAtLeastOne(
+            [
+              { value: options.title, name: '--title' },
+              { value: options.archived, name: '--archived' },
+              { value: options.icon, name: '--icon' },
+              { value: options.cover, name: '--cover' },
+            ],
+            'Page update'
+          );
+
           // Validate title length if provided
           validateStringLength(options.title, 'Title', { max: 2000 });
 

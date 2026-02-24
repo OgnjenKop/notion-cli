@@ -45,15 +45,15 @@ export function createSearchCommand(): Command {
 
           const result = await client.search(searchOptions);
 
+          if (options?.json) {
+            console.log(formatOutput(result, { json: true }));
+            return;
+          }
+
           if (result.results.length === 0) {
             if (!options?.quiet) {
               console.log('No results found.');
             }
-            return;
-          }
-
-          if (options?.json) {
-            console.log(formatOutput(result, { json: true }));
             return;
           }
 

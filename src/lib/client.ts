@@ -184,30 +184,17 @@ export class NotionClient {
     const startTime = Date.now();
     let lastError: Error | undefined;
     let attempts = 0;
+    let lastResult: T | undefined;
+    let succeeded = false;
 
     metrics.requestCount++;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       attempts++;
       try {
-        const result = await requestFn();
-
-        // Record successful request metrics
-        const duration = Date.now() - startTime;
-        metrics.totalDuration += duration;
-        metrics.averageDuration = metrics.totalDuration / metrics.requestCount;
-        metrics.slowestDuration = Math.max(metrics.slowestDuration, duration);
-        metrics.fastestDuration = Math.min(metrics.fastestDuration, duration);
-
-        if (attempts > 1) {
-          metrics.retryCount += attempts - 1;
-        }
-
-        logVerbose(
-          `API ${operation} completed in ${duration}ms${attempts > 1 ? ` (${attempts} attempts)` : ''}`
-        );
-
-        return result;
+        lastResult = await requestFn();
+        succeeded = true;
+        break;
       } catch (error) {
         lastError = error as Error;
 
@@ -222,6 +209,22 @@ export class NotionClient {
         );
         await sleep(delay);
       }
+    }
+
+    const duration = Date.now() - startTime;
+    metrics.totalDuration += duration;
+    metrics.averageDuration = metrics.totalDuration / metrics.requestCount;
+    metrics.slowestDuration = Math.max(metrics.slowestDuration, duration);
+    metrics.fastestDuration = Math.min(metrics.fastestDuration, duration);
+    if (attempts > 1) {
+      metrics.retryCount += attempts - 1;
+    }
+
+    if (succeeded) {
+      logVerbose(
+        `API ${operation} completed in ${duration}ms${attempts > 1 ? ` (${attempts} attempts)` : ''}`
+      );
+      return lastResult as T;
     }
 
     const context = `${operation} failed after ${attempts} attempt(s)`;

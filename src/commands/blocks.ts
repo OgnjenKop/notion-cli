@@ -7,6 +7,9 @@ import {
   validateStringLength,
   validateEnum,
   validateAtLeastOne,
+  validateOnlyOne,
+  validateRequired,
+  validateUrlFormat,
 } from '../lib/option-validation';
 import { blocksToMarkdown } from '../lib/markdown';
 import { Block } from '../lib/types';
@@ -199,6 +202,20 @@ function createBlockAppendCommand(): Command {
           // Validate language if provided
           validateStringLength(options.language, 'Language', { max: 50 });
 
+          const urlBlockTypes = new Set([
+            'image',
+            'video',
+            'file',
+            'audio',
+            'embed',
+            'bookmark',
+            'pdf',
+          ]);
+          if (urlBlockTypes.has(options.type)) {
+            validateRequired(options.content, 'Content URL');
+            validateUrlFormat(options.content, 'Content URL');
+          }
+
           // Validate table width if provided
           let tableWidth: number | undefined;
           if (options.tableWidth) {
@@ -317,6 +334,16 @@ function createBlockUpdateCommand(): Command {
             ],
             'Block update'
           );
+
+          if (options.checked !== undefined || options.unchecked !== undefined) {
+            validateOnlyOne(
+              [
+                { value: options.checked, name: '--checked' },
+                { value: options.unchecked, name: '--unchecked' },
+              ],
+              'Checked state'
+            );
+          }
 
           if (options.color) {
             validateEnum(options.color, VALID_COLORS as unknown as string[], 'Color');
