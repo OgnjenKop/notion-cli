@@ -220,6 +220,9 @@ notion blocks list <pageId> --format text
 # Write markdown output to file
 notion blocks list <pageId> --format markdown -o output.md
 
+# Markdown output renders nested blocks recursively (ignores --all)
+notion blocks list <pageId> --format markdown
+
 # Append blocks
 notion blocks append <pageId> -t paragraph --content "Hello World"
 notion blocks append <pageId> -t heading_1 --content "Section Title"
@@ -325,6 +328,7 @@ notion pages export <pageId> --json
 
 **Export Features:**
 - Automatic pagination (fetches all content)
+- Recursive block traversal (nested children rendered in markdown)
 - Sanitized filenames (removes special characters)
 - Proper markdown formatting (headings, lists, code blocks, etc.)
 - Metadata included (URL, created/edited dates)

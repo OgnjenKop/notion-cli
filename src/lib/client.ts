@@ -379,7 +379,8 @@ export class NotionClient {
   async createDatabase(
     parent: { type: string; [key: string]: string },
     properties: DatabaseProperties,
-    title?: RichText[]
+    title?: RichText[],
+    isInline?: boolean
   ): Promise<Database> {
     return this.requestWithRetry(async () => {
       const params: Record<string, unknown> = {
@@ -388,6 +389,9 @@ export class NotionClient {
       };
       if (title) {
         params.title = title;
+      }
+      if (isInline !== undefined) {
+        params.is_inline = isInline;
       }
 
       const response = await this.client.post('/databases', params);

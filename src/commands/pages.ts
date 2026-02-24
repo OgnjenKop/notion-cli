@@ -14,8 +14,9 @@ import {
   validateUrlFormat,
   validateEnum,
 } from '../lib/option-validation';
-import { pageToMarkdown, sanitizeFilename, writeToFile } from '../lib/markdown';
+import { pageToMarkdownTree, sanitizeFilename, writeToFile } from '../lib/markdown';
 import { Block } from '../lib/types';
+import { fetchBlockTree } from '../lib/blocks-tree';
 
 export function createPagesCommand(): Command {
   const pages = new Command('pages')
@@ -86,9 +87,10 @@ function createPageCreateCommand(): Command {
 
           const client = new NotionClient();
 
+          const parentType = options.parentType === 'page' ? 'page_id' : 'database_id';
           const parent = {
-            type: options.parentType,
-            [`${options.parentType}_id`]: options.parent,
+            type: parentType,
+            [parentType]: options.parent,
           };
 
           // Build properties based on parent type
@@ -177,7 +179,16 @@ function createPageUpdateCommand(): Command {
 
           const properties: any = {};
           if (options.title) {
-            properties['Name'] = {
+            const page = await client.getPage(pageId);
+            const titleProperty = Object.entries(page.properties || {}).find(
+              ([, value]: [string, any]) => value?.type === 'title'
+            )?.[0];
+
+            if (!titleProperty) {
+              throw new Error('Unable to locate the title property for this page.');
+            }
+
+            properties[titleProperty] = {
               title: [{ text: { content: options.title } }],
             };
           }
@@ -319,21 +330,14 @@ function createPageDuplicateCommand(): Command {
 }
 
 /**
- * Helper function to fetch all blocks from a page with pagination
+ * Helper function to fetch all blocks from a page with pagination (recursive)
  */
-async function getAllBlocks(client: NotionClient, blockId: string): Promise<Block[]> {
-  const allBlocks: Block[] = [];
-  let nextCursor: string | undefined;
-  let hasMore = true;
-
-  while (hasMore) {
-    const result = await client.getBlockChildren(blockId, 100, nextCursor);
-    allBlocks.push(...result.results);
-    hasMore = result.has_more;
-    nextCursor = result.next_cursor || undefined;
-  }
-
-  return allBlocks;
+async function getAllBlocks(
+  client: NotionClient,
+  blockId: string
+): Promise<{ blocks: Block[]; childrenById: Record<string, Block[]> }> {
+  const tree = await fetchBlockTree(client, blockId, 100);
+  return { blocks: tree.blocks, childrenById: tree.childrenById };
 }
 
 function createPageExportCommand(): Command {
@@ -357,10 +361,10 @@ function createPageExportCommand(): Command {
           }
 
           // Fetch all blocks
-          const blocks = await getAllBlocks(client, pageId);
+          const tree = await getAllBlocks(client, pageId);
 
           // Convert to markdown
-          const markdown = pageToMarkdown(page, blocks);
+          const markdown = pageToMarkdownTree(page, tree.blocks, tree.childrenById);
 
           // Determine output path
           let outputPath: string;
@@ -405,8 +409,8 @@ function createPageBatchExportCommand(): Command {
           const outputDir = options.outputDir || './exports';
 
           // Fetch all child pages from the parent page
-          const blocks = await getAllBlocks(client, parentPageId);
-          const childPageBlocks = blocks.filter((block) => block.type === 'child_page');
+          const tree = await getAllBlocks(client, parentPageId);
+          const childPageBlocks = tree.blocks.filter((block) => block.type === 'child_page');
 
           if (childPageBlocks.length === 0) {
             console.log('No child pages found.');
@@ -431,10 +435,10 @@ function createPageBatchExportCommand(): Command {
                 writeToFile(`${outputDir}/${filename}`, JSON.stringify(page, null, 2));
               } else {
                 // Fetch all blocks from child page
-                const childBlocks = await getAllBlocks(client, childPageId);
+                const childTree = await getAllBlocks(client, childPageId);
 
                 // Convert to markdown
-                const markdown = pageToMarkdown(page, childBlocks);
+                const markdown = pageToMarkdownTree(page, childTree.blocks, childTree.childrenById);
 
                 // Write to file
                 const filename = sanitizeFilename(childTitle) + '.md';

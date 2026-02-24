@@ -2,6 +2,95 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Block, Page, RichTextItem } from './types';
 
+function escapeInlineMarkdown(text: string): string {
+  return text.replace(/([\\`*_{}\[\]()!])/g, '\\$1');
+}
+
+function escapeLineStartMarkdown(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => {
+      const match = line.match(/^(\s*)(.*)$/);
+      if (!match) {
+        return line;
+      }
+      const [, leading, rest] = match;
+      if (
+        rest.startsWith('#') ||
+        rest.startsWith('>') ||
+        rest.startsWith('-') ||
+        rest.startsWith('*') ||
+        rest.startsWith('+')
+      ) {
+        return `${leading}\\${rest}`;
+      }
+      if (/^\d+[.)]\s/.test(rest)) {
+        return `${leading}\\${rest}`;
+      }
+      if (rest.startsWith('```')) {
+        return `${leading}\\${rest}`;
+      }
+      return line;
+    })
+    .join('\n');
+}
+
+function indentLines(text: string, indent: number): string {
+  if (indent <= 0) {
+    return text;
+  }
+  const prefix = '  '.repeat(indent);
+  return text
+    .split('\n')
+    .map((line) => (line.length > 0 ? `${prefix}${line}` : line))
+    .join('\n');
+}
+
+function prefixBlockquote(text: string): string {
+  const trimmed = text.replace(/\n+$/, '');
+  return trimmed
+    .split('\n')
+    .map((line) => {
+      if (line.length === 0) {
+        return '>';
+      }
+      if (/^(\s*)([-*+])\s+/.test(line) || /^(\s*)\d+[.)]\s+/.test(line)) {
+        return `> ${line}`;
+      }
+      return `> ${line}`;
+    })
+    .join('\n');
+}
+
+function isListType(type: string): boolean {
+  return type === 'bulleted_list_item' || type === 'numbered_list_item' || type === 'to_do';
+}
+
+function wrapInlineCode(text: string): string {
+  const matches = text.match(/`+/g) || [];
+  const longest = matches.reduce((max, match) => Math.max(max, match.length), 0);
+  const fence = '`'.repeat(longest + 1);
+  return `${fence}${text}${fence}`;
+}
+
+function wrapCodeBlock(text: string, language: string): string {
+  const matches = text.match(/`+/g) || [];
+  const longest = matches.reduce((max, match) => Math.max(max, match.length), 0);
+  const fence = '`'.repeat(Math.max(3, longest + 1));
+  const lang = language || 'text';
+  return `${fence}${lang}\n${text}\n${fence}\n\n`;
+}
+
+function richTextToPlainText(richText: RichTextItem[]): string {
+  if (!richText || !Array.isArray(richText)) {
+    return '';
+  }
+
+  return richText
+    .map((rt) => rt.plain_text ?? rt.text?.content ?? '')
+    .join('');
+}
+
 /**
  * Convert a RichTextItem array to markdown text
  */
@@ -12,8 +101,17 @@ export function richTextToMarkdown(richText: RichTextItem[]): string {
 
   return richText
     .map((rt) => {
-      let text = rt.text?.content || '';
+      const baseText = rt.plain_text ?? rt.text?.content ?? '';
+      let text = escapeLineStartMarkdown(escapeInlineMarkdown(baseText));
       const annotations = (rt.annotations as any) || {};
+
+      if (annotations.code) {
+        text = wrapInlineCode(baseText);
+        if (rt.text?.link?.url) {
+          text = `[${text}](${rt.text.link.url})`;
+        }
+        return text;
+      }
 
       if (annotations.bold) {
         text = `**${text}**`;
@@ -25,10 +123,7 @@ export function richTextToMarkdown(richText: RichTextItem[]): string {
         text = `~~${text}~~`;
       }
       if (annotations.underline) {
-        text = `_${text}_`; // Use italic-style for underline (markdown doesn't support underline)
-      }
-      if (annotations.code) {
-        text = `\`${text}\``;
+        text = `<u>${text}</u>`;
       }
 
       if (rt.text?.link?.url) {
@@ -85,8 +180,8 @@ export function blockToMarkdown(block: Block): string {
 
     case 'code': {
       const lang = content.language || 'text';
-      const codeText = richTextToMarkdown(content.rich_text);
-      return `\`\`\`${lang}\n${codeText}\n\`\`\`\n\n`;
+      const codeText = richTextToPlainText(content.rich_text);
+      return wrapCodeBlock(codeText, lang);
     }
 
     case 'divider':
@@ -136,7 +231,9 @@ export function blockToMarkdown(block: Block): string {
     case 'table': {
       // Table header - actual rows come as children
       const tableWidth = content.table_width || 2;
-      return `| ${Array(tableWidth).fill('---').join(' | ')} |\n`;
+      const header = `| ${Array(tableWidth).fill(' ').join(' | ')} |`;
+      const separator = `| ${Array(tableWidth).fill('---').join(' | ')} |`;
+      return `${header}\n${separator}\n`;
     }
 
     case 'table_row': {
@@ -182,7 +279,7 @@ export function blockToMarkdown(block: Block): string {
     }
 
     case 'equation': {
-      const equation = content.expression?.equation || '';
+      const equation = content.expression || content.equation?.expression || '';
       return `$${equation}$\n\n`;
     }
 
@@ -192,6 +289,56 @@ export function blockToMarkdown(block: Block): string {
       return text ? text + '\n\n' : '';
     }
   }
+}
+
+export function blocksToMarkdown(
+  blocks: Block[],
+  childrenById: Record<string, Block[]>,
+  depth: number = 0
+): string {
+  let output = '';
+
+  for (const block of blocks) {
+    if (block.type === 'table') {
+      const content = (block as any).table;
+      const tableWidth = content?.table_width || 2;
+      const header = `| ${Array(tableWidth).fill(' ').join(' | ')} |`;
+      const separator = `| ${Array(tableWidth).fill('---').join(' | ')} |`;
+      output += `${header}\n${separator}\n`;
+
+      const childBlocks = childrenById[block.id] || [];
+      output += blocksToMarkdown(childBlocks, childrenById, depth);
+      output += '\n';
+      continue;
+    }
+
+    if (block.type === 'toggle') {
+      const content = (block as any).toggle;
+      const summary = content ? richTextToMarkdown(content.rich_text) : '';
+      const childMarkdown = blocksToMarkdown(childrenById[block.id] || [], childrenById, depth + 1);
+      output += `<details><summary>${summary}</summary>\n\n${childMarkdown}</details>\n\n`;
+      continue;
+    }
+
+    const blockMarkdown = blockToMarkdown(block);
+    if (blockMarkdown) {
+      const indentLevel = isListType(block.type) ? depth : Math.max(0, depth);
+      output += indentLines(blockMarkdown, indentLevel);
+    }
+
+    if (block.has_children) {
+      const childBlocks = childrenById[block.id] || [];
+      const childDepth = isListType(block.type) ? depth + 1 : depth;
+      const childMarkdown = blocksToMarkdown(childBlocks, childrenById, childDepth);
+      if (block.type === 'quote' || block.type === 'callout') {
+        output += `${prefixBlockquote(childMarkdown)}\n\n`;
+      } else {
+        output += childMarkdown;
+      }
+    }
+  }
+
+  return output;
 }
 
 /**
@@ -215,6 +362,29 @@ export function pageToMarkdown(page: Page, blocks: Block[]): string {
   for (const block of blocks) {
     markdown += blockToMarkdown(block);
   }
+
+  return markdown;
+}
+
+export function pageToMarkdownTree(
+  page: Page,
+  blocks: Block[],
+  childrenById: Record<string, Block[]>
+): string {
+  const title =
+    page.properties?.title?.title?.map((t) => t.plain_text).join('') ||
+    page.properties?.Name?.title?.map((t) => t.plain_text).join('') ||
+    'Untitled';
+
+  let markdown = `# ${title}\n\n`;
+
+  // Add page metadata
+  markdown += `**URL:** ${page.url}\n`;
+  markdown += `**Created:** ${page.created_time}\n`;
+  markdown += `**Last Edited:** ${page.last_edited_time}\n\n`;
+  markdown += `---\n\n`;
+
+  markdown += blocksToMarkdown(blocks, childrenById);
 
   return markdown;
 }

@@ -6,9 +6,11 @@ import {
   validatePositiveInteger,
   validateStringLength,
   validateEnum,
+  validateAtLeastOne,
 } from '../lib/option-validation';
-import { blockToMarkdown } from '../lib/markdown';
+import { blocksToMarkdown } from '../lib/markdown';
 import { Block } from '../lib/types';
+import { fetchBlockTree } from '../lib/blocks-tree';
 
 export function createBlocksCommand(): Command {
   const blocks = new Command('blocks')
@@ -102,10 +104,8 @@ function createBlockListCommand(): Command {
 
           // Handle --format markdown
           if (options.format === 'markdown') {
-            let markdownContent = '';
-            for (const block of allBlocks) {
-              markdownContent += blockToMarkdown(block);
-            }
+            const tree = await fetchBlockTree(client, blockId, pageSize);
+            const markdownContent = blocksToMarkdown(tree.blocks, tree.childrenById);
 
             if (options.output) {
               // Write to file
@@ -308,26 +308,82 @@ function createBlockUpdateCommand(): Command {
         }
       ) => {
         try {
+          validateAtLeastOne(
+            [
+              { value: options.content, name: '--content' },
+              { value: options.checked, name: '--checked' },
+              { value: options.unchecked, name: '--unchecked' },
+              { value: options.color, name: '--color' },
+            ],
+            'Block update'
+          );
+
+          if (options.color) {
+            validateEnum(options.color, VALID_COLORS as unknown as string[], 'Color');
+          }
+
           const client = new NotionClient();
 
-          const params: any = {};
+          const block = await client.getBlock(blockId);
+          const blockType = block.type;
+
+          const richTextTypes = new Set([
+            'paragraph',
+            'heading_1',
+            'heading_2',
+            'heading_3',
+            'bulleted_list_item',
+            'numbered_list_item',
+            'to_do',
+            'toggle',
+            'quote',
+            'callout',
+            'code',
+          ]);
+
+          const colorTypes = new Set([
+            'paragraph',
+            'heading_1',
+            'heading_2',
+            'heading_3',
+            'bulleted_list_item',
+            'numbered_list_item',
+            'to_do',
+            'toggle',
+            'quote',
+            'callout',
+          ]);
+
+          if (options.content !== undefined && !richTextTypes.has(blockType)) {
+            throw new Error(`Block type ${blockType} does not support text content updates.`);
+          }
+
+          if (options.color && !colorTypes.has(blockType)) {
+            throw new Error(`Block type ${blockType} does not support color updates.`);
+          }
+
+          if ((options.checked !== undefined || options.unchecked !== undefined) && blockType !== 'to_do') {
+            throw new Error(`Block type ${blockType} does not support checked state updates.`);
+          }
+
+          const typePayload: any = {};
 
           // Handle content and color
           if (options.content !== undefined) {
-            params.rich_text = [{ text: { content: options.content } }];
+            typePayload.rich_text = [{ text: { content: options.content } }];
           }
           if (options.color) {
-            params.color = options.color;
+            typePayload.color = options.color;
           }
 
           // Handle checked state - --checked takes precedence over --unchecked
           if (options.checked !== undefined) {
-            params.checked = options.checked;
+            typePayload.checked = options.checked;
           } else if (options.unchecked !== undefined) {
-            params.checked = !options.unchecked;
+            typePayload.checked = !options.unchecked;
           }
 
-          const result = await client.updateBlock(blockId, params);
+          const result = await client.updateBlock(blockId, { [blockType]: typePayload });
 
           printSuccess('Block updated successfully!', options?.quiet);
 
@@ -426,9 +482,15 @@ function createBlock(options: {
     );
   }
 
-  return {
+  const block: any = {
     object: 'block',
     type: options.type,
     ...blockTypes[options.type],
   };
+
+  if (options.children && options.children.length > 0) {
+    block.children = options.children;
+  }
+
+  return block;
 }

@@ -199,7 +199,7 @@ function createDatabaseCreateCommand(): Command {
 
           const title = [{ text: { content: options.title } }];
 
-          const database = await client.createDatabase(parent, properties, title);
+          const database = await client.createDatabase(parent, properties, title, options.inline);
 
           printSuccess('Database created successfully!', options?.quiet);
           console.log(`URL: ${database.url}`);
