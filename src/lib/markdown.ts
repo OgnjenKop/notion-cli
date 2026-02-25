@@ -15,6 +15,9 @@ function escapeLineStartMarkdown(text: string): string {
         return line;
       }
       const [, leading, rest] = match;
+      if (!rest) {
+        return line;
+      }
       if (
         rest.startsWith('#') ||
         rest.startsWith('>') ||
