@@ -266,6 +266,8 @@ export interface Block extends NotionObject {
     children?: Block[];
   };
   table_row?: { cells: RichText[][] };
+  child_page?: { title: string };
+  child_database?: { title: string };
 }
 
 /**

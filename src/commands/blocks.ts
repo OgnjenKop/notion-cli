@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
 import { formatOutput, printSuccess, printBlockSummary, throwCommandError } from '../lib/output';
-import { VALID_COLORS, VALID_BLOCK_TYPES } from '../lib/validation';
+import { VALID_COLORS, VALID_BLOCK_TYPES, BlockType } from '../lib/validation';
 import {
   validatePositiveInteger,
   validateStringLength,
@@ -12,7 +12,7 @@ import {
   validateUrlFormat,
 } from '../lib/option-validation';
 import { blocksToMarkdown } from '../lib/markdown';
-import { Block } from '../lib/types';
+import { Block, BlockContent } from '../lib/types';
 import { fetchBlockTree } from '../lib/blocks-tree';
 
 export function createBlocksCommand(): Command {
@@ -253,20 +253,56 @@ function createBlockAppendCommand(): Command {
 
           const client = new NotionClient();
 
-          const blockData = {
-            type: options.type,
-            content: options.content,
-            color: options.color,
-            checked: options.checked,
-            language: options.language,
-            header: options.header,
-            syncedFrom: options.syncedFrom,
-            json: options.json,
-            quiet: options.quiet,
-            tableWidth,
-            cells,
-            children,
+          const blockData: {
+            type: BlockType;
+            content?: string;
+            color?: string;
+            checked?: boolean;
+            language?: string;
+            tableWidth?: number;
+            header?: boolean;
+            syncedFrom?: string;
+            json?: boolean;
+            quiet?: boolean;
+            cells?: string[];
+            children?: BlockContent[];
+          } = {
+            type: options.type as BlockType,
           };
+          if (options.content !== undefined) {
+            blockData.content = options.content;
+          }
+          if (options.color !== undefined) {
+            blockData.color = options.color;
+          }
+          if (options.checked !== undefined) {
+            blockData.checked = options.checked;
+          }
+          if (options.language !== undefined) {
+            blockData.language = options.language;
+          }
+          if (options.header !== undefined) {
+            blockData.header = options.header;
+          }
+          if (options.syncedFrom !== undefined) {
+            blockData.syncedFrom = options.syncedFrom;
+          }
+          if (options.json !== undefined) {
+            blockData.json = options.json;
+          }
+          if (options.quiet !== undefined) {
+            blockData.quiet = options.quiet;
+          }
+          if (tableWidth !== undefined) {
+            blockData.tableWidth = tableWidth;
+          }
+          if (cells !== undefined) {
+            blockData.cells = cells;
+          }
+          if (children !== undefined) {
+            blockData.children = children;
+          }
+
           const childrenBlocks = [createBlock(blockData)];
 
           const result = await client.appendBlockChildren(blockId, childrenBlocks);
@@ -427,24 +463,28 @@ function createBlockUpdateCommand(): Command {
     );
 }
 
-// Helper function to create a block object
+/**
+ * Create a block object for Notion API
+ * @param options - Block configuration options
+ * @returns Block content object
+ */
 function createBlock(options: {
-  type: string;
-  content?: string | undefined;
-  color?: string | undefined;
-  checked?: boolean | undefined;
-  language?: string | undefined;
-  tableWidth?: number | undefined;
-  header?: boolean | undefined;
-  cells?: string[] | undefined;
-  children?: any[] | undefined;
-  syncedFrom?: string | undefined;
-}): any {
+  type: BlockType;
+  content?: string;
+  color?: string;
+  checked?: boolean;
+  language?: string;
+  tableWidth?: number;
+  header?: boolean;
+  cells?: string[];
+  children?: BlockContent[];
+  syncedFrom?: string;
+}): BlockContent {
   const richText = {
     rich_text: options.content ? [{ text: { content: options.content } }] : [],
   };
 
-  const blockTypes: { [key: string]: any } = {
+  const blockTypes: Record<string, BlockContent> = {
     paragraph: { paragraph: { ...richText, color: options.color || 'default' } },
     heading_1: {
       heading_1: { ...richText, color: options.color || 'default', is_toggleable: false },
@@ -472,8 +512,6 @@ function createBlock(options: {
     pdf: { pdf: { type: 'external', external: { url: options.content } } },
     file: { file: { type: 'external', external: { url: options.content } } },
     audio: { audio: { type: 'external', external: { url: options.content } } },
-    // Table block - creates a table with specified width
-    // Note: Table rows must be appended as children after table creation
     table: {
       table: {
         table_width: options.tableWidth || 2,
@@ -481,24 +519,17 @@ function createBlock(options: {
         has_row_header: false,
       },
     },
-    // Table row block - must be a child of a table
     table_row: {
       table_row: {
         cells: (options.cells || []).map((cell) => (cell ? [{ text: { content: cell } }] : [])),
       },
     },
-    // Column block - must be a child of column_list
-    // Note: Content blocks must be appended as children after column creation
     column: {
       column: {},
     },
-    // Column list block - contains multiple columns
-    // Note: Column blocks must be appended as children after column_list creation
     column_list: {
       column_list: {},
     },
-    // Synced block - can be synced across pages
-    // Note: If synced_from is null, creates an original synced block
     synced_block: {
       synced_block: {
         synced_from: options.syncedFrom ? { type: 'block_id', block_id: options.syncedFrom } : null,
@@ -512,7 +543,7 @@ function createBlock(options: {
     );
   }
 
-  const block: any = {
+  const block: BlockContent = {
     object: 'block',
     type: options.type,
     ...blockTypes[options.type],

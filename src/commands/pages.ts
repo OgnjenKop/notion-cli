@@ -16,8 +16,12 @@ import {
   validateAtLeastOne,
 } from '../lib/option-validation';
 import { pageToMarkdownTree, sanitizeFilename, writeToFile } from '../lib/markdown';
-import { Block } from '../lib/types';
+import { Block, BlockContent, PageProperties } from '../lib/types';
 import { fetchBlockTree } from '../lib/blocks-tree';
+
+// Maximum length for title and content fields
+const MAX_TITLE_LENGTH = 2000;
+const MAX_CONTENT_LENGTH = 2000;
 
 export function createPagesCommand(): Command {
   const pages = new Command('pages')
@@ -81,10 +85,10 @@ function createPageCreateCommand(): Command {
           validateId(options.parent, 'Parent ID');
 
           // Validate title length if provided
-          validateStringLength(options.title, 'Title', { max: 2000 });
+          validateStringLength(options.title, 'Title', { max: MAX_TITLE_LENGTH });
 
           // Validate content length if provided
-          validateStringLength(options.content, 'Content', { max: 2000 });
+          validateStringLength(options.content, 'Content', { max: MAX_CONTENT_LENGTH });
 
           const client = new NotionClient();
 
@@ -95,7 +99,7 @@ function createPageCreateCommand(): Command {
           };
 
           // Build properties based on parent type
-          const properties: any = {};
+          const properties: PageProperties = {};
           if (options.parentType === 'database') {
             // For database pages, title goes in the Name property
             if (options.title) {
@@ -113,7 +117,7 @@ function createPageCreateCommand(): Command {
           }
 
           // Build content blocks
-          const children: any[] = [];
+          const children: BlockContent[] = [];
           if (options.content) {
             children.push({
               object: 'block',
@@ -341,13 +345,18 @@ function createPageDuplicateCommand(): Command {
 }
 
 /**
- * Helper function to fetch all blocks from a page with pagination (recursive)
+ * Fetch all blocks from a page with automatic pagination
+ * @param client - Notion API client
+ * @param blockId - Page or block ID to fetch
+ * @param pageSize - Number of blocks per page (default: 100)
+ * @returns Object containing blocks array and children-by-id map
  */
-async function getAllBlocks(
+async function fetchPageBlockTree(
   client: NotionClient,
-  blockId: string
+  blockId: string,
+  pageSize: number = 100
 ): Promise<{ blocks: Block[]; childrenById: Record<string, Block[]> }> {
-  const tree = await fetchBlockTree(client, blockId, 100);
+  const tree = await fetchBlockTree(client, blockId, pageSize);
   return { blocks: tree.blocks, childrenById: tree.childrenById };
 }
 
@@ -372,7 +381,7 @@ function createPageExportCommand(): Command {
           }
 
           // Fetch all blocks
-          const tree = await getAllBlocks(client, pageId);
+          const tree = await fetchPageBlockTree(client, pageId);
 
           // Convert to markdown
           const markdown = pageToMarkdownTree(page, tree.blocks, tree.childrenById);
@@ -416,11 +425,14 @@ function createPageBatchExportCommand(): Command {
         try {
           const client = new NotionClient();
 
+          // Parse page size
+          const pageSize = parseInt(options.pageSize || '100', 10);
+
           // Determine output directory
           const outputDir = options.outputDir || './exports';
 
           // Fetch all child pages from the parent page
-          const tree = await getAllBlocks(client, parentPageId);
+          const tree = await fetchPageBlockTree(client, parentPageId, pageSize);
           const childPageBlocks = tree.blocks.filter((block) => block.type === 'child_page');
 
           if (childPageBlocks.length === 0) {
@@ -434,8 +446,7 @@ function createPageBatchExportCommand(): Command {
           let hasErrors = false;
           for (const block of childPageBlocks) {
             const childPageId = block.id;
-            const childTitle =
-              (block as any).child_page?.title || `page-${childPageId.slice(0, 8)}`;
+            const childTitle = block.child_page?.title || `page-${childPageId.slice(0, 8)}`;
 
             try {
               // Fetch child page details
@@ -446,7 +457,7 @@ function createPageBatchExportCommand(): Command {
                 writeToFile(`${outputDir}/${filename}`, JSON.stringify(page, null, 2));
               } else {
                 // Fetch all blocks from child page
-                const childTree = await getAllBlocks(client, childPageId);
+                const childTree = await fetchPageBlockTree(client, childPageId, pageSize);
 
                 // Convert to markdown
                 const markdown = pageToMarkdownTree(page, childTree.blocks, childTree.childrenById);
