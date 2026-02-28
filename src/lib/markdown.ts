@@ -239,7 +239,7 @@ export function blockToMarkdown(block: Block): string {
 
     case 'table_row': {
       const cells = content.cells || [];
-      const cellTexts = cells.map((cell: any[]) => (cell ? richTextToMarkdown(cell) : ''));
+      const cellTexts = cells.map((cell: RichTextItem[]) => (cell ? richTextToMarkdown(cell) : ''));
       return `| ${cellTexts.join(' | ')} |\n`;
     }
 

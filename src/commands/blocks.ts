@@ -239,10 +239,10 @@ function createBlockAppendCommand(): Command {
           }
 
           // Validate children JSON if provided
-          let children: any[] | undefined;
+          let children: BlockContent[] | undefined;
           if (options.children) {
             try {
-              children = JSON.parse(options.children);
+              children = JSON.parse(options.children) as BlockContent[];
               if (!Array.isArray(children)) {
                 throw new Error('Children must be a JSON array of blocks');
               }

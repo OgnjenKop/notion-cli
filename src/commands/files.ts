@@ -40,7 +40,8 @@ function createFileUploadCommand(): Command {
 
           const client = new NotionClient();
 
-          const fileBlock: any = {
+          // Build file block payload (using Record for dynamic API structure)
+          const fileBlock: Record<string, unknown> = {
             object: 'block',
             type: 'file',
             file: {
@@ -50,7 +51,9 @@ function createFileUploadCommand(): Command {
           };
 
           if (options.caption) {
-            fileBlock.file.caption = [{ text: { content: options.caption } }];
+            (fileBlock.file as Record<string, unknown>).caption = [
+              { text: { content: options.caption } },
+            ];
           }
 
           const result = await client.appendBlockChildren(options.parent, [fileBlock]);

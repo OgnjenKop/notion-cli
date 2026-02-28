@@ -2,7 +2,7 @@
  * Output formatting utilities
  */
 
-import { Page, Database, User, Block, PropertyValue } from './types';
+import { Page, Database, User, Block, PropertyValue, RichTextItem } from './types';
 import { CommandExecutionError, NotionError } from './errors';
 import { redactSensitiveText } from './redaction';
 
@@ -154,7 +154,9 @@ export function getBlockContent(block: Block): string {
   }
 
   if (blockType.rich_text) {
-    return blockType.rich_text.map((rt: any) => rt.plain_text || rt.text?.content || '').join('');
+    return blockType.rich_text
+      .map((rt: RichTextItem) => rt.plain_text || rt.text?.content || '')
+      .join('');
   }
 
   if (type === 'divider') {
