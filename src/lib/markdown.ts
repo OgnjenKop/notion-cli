@@ -3,7 +3,7 @@ import * as path from 'path';
 import { Block, Page, RichTextItem } from './types';
 
 function escapeInlineMarkdown(text: string): string {
-  return text.replace(/([\\`*_{}\[\]()!])/g, '\\$1');
+  return text.replace(/([\\`*_{}[\]()!])/g, '\\$1');
 }
 
 function escapeLineStartMarkdown(text: string): string {
@@ -89,9 +89,7 @@ function richTextToPlainText(richText: RichTextItem[]): string {
     return '';
   }
 
-  return richText
-    .map((rt) => rt.plain_text ?? rt.text?.content ?? '')
-    .join('');
+  return richText.map((rt) => rt.plain_text ?? rt.text?.content ?? '').join('');
 }
 
 /**

@@ -16,7 +16,19 @@ describe('Pages Command', () => {
 
     jest.mock('../lib/client', () => ({
       NotionClient: jest.fn().mockImplementation(() => ({
-        getPage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
+        getPage: jest.fn().mockImplementation((pageId: string) => {
+          // Return page with title property for update tests
+          return Promise.resolve({
+            id: pageId,
+            url: 'https://notion.so/page-1',
+            properties: {
+              Name: {
+                title: [{ plain_text: 'Test Page' }],
+                type: 'title',
+              },
+            },
+          });
+        }),
         createPage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
         updatePage: jest.fn().mockResolvedValue({ id: 'page-1', url: 'https://notion.so/page-1' }),
         updatePageFull: jest
@@ -138,12 +150,12 @@ describe('Pages Command', () => {
   });
 
   describe('pages update', () => {
-    it('should execute with pageId', async () => {
+    it('should execute with pageId and archived option', async () => {
       const pages: Command = require('../commands/pages').createPagesCommand();
       const update = pages.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
+        update.parseAsync(['node', 'test', '--archived', '12345678-1234-1234-1234-123456789012'])
       ).resolves.toBeDefined();
     });
 

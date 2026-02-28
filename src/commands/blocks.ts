@@ -389,7 +389,10 @@ function createBlockUpdateCommand(): Command {
             throw new Error(`Block type ${blockType} does not support color updates.`);
           }
 
-          if ((options.checked !== undefined || options.unchecked !== undefined) && blockType !== 'to_do') {
+          if (
+            (options.checked !== undefined || options.unchecked !== undefined) &&
+            blockType !== 'to_do'
+          ) {
             throw new Error(`Block type ${blockType} does not support checked state updates.`);
           }
 

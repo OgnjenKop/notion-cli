@@ -16,7 +16,13 @@ describe('Blocks Command', () => {
 
     jest.mock('../lib/client', () => ({
       NotionClient: jest.fn().mockImplementation(() => ({
-        getBlock: jest.fn().mockResolvedValue({ id: 'block-1', type: 'paragraph' }),
+        getBlock: jest.fn().mockImplementation((blockId: string) => {
+          // Return to_do block for checked/unchecked tests
+          if (blockId === '12345678-1234-1234-1234-123456789012') {
+            return Promise.resolve({ id: blockId, type: 'to_do' });
+          }
+          return Promise.resolve({ id: blockId, type: 'paragraph' });
+        }),
         getBlockChildren: jest
           .fn()
           .mockResolvedValue({ results: [], has_more: false, next_cursor: null }),
@@ -233,12 +239,18 @@ describe('Blocks Command', () => {
   });
 
   describe('blocks update', () => {
-    it('should execute with blockId', async () => {
+    it('should execute with blockId and content option', async () => {
       const blocks: Command = require('../commands/blocks').createBlocksCommand();
       const update = blocks.commands.find((c: Command) => c.name() === 'update')!;
 
       await expect(
-        update.parseAsync(['node', 'test', '12345678-1234-1234-1234-123456789012'])
+        update.parseAsync([
+          'node',
+          'test',
+          '--content',
+          'Updated content',
+          '12345678-1234-1234-1234-123456789012',
+        ])
       ).resolves.toBeDefined();
     });
 
