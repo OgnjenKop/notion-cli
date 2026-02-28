@@ -2,7 +2,7 @@
  * Output formatting utilities
  */
 
-import { Page, Database, User, Block } from './types';
+import { Page, Database, User, Block, PropertyValue } from './types';
 import { CommandExecutionError, NotionError } from './errors';
 import { redactSensitiveText } from './redaction';
 
@@ -71,9 +71,10 @@ export function printPageSummary(page: Page): void {
   const title = getPageTitle(page);
   const id = page.id;
   const url = page.url || 'N/A';
+  const statusProperty = page.properties?.Status as PropertyValue | undefined;
   const status =
-    (page.properties?.Status as any)?.status?.name ||
-    (page.properties?.Status as any)?.select?.name ||
+    (statusProperty?.type === 'status' && statusProperty.status?.name) ||
+    (statusProperty?.type === 'select' && statusProperty.select?.name) ||
     '';
 
   console.log(`[PAGE] ${title}`);
@@ -89,8 +90,8 @@ export function printPageSummary(page: Page): void {
  * Extract page title from various property formats
  */
 export function getPageTitle(page: Page): string {
-  const nameProp = page.properties?.Name as any;
-  const titleProp = page.properties?.title as any;
+  const nameProp = page.properties?.Name as PropertyValue | undefined;
+  const titleProp = page.properties?.title as PropertyValue | undefined;
 
   return nameProp?.title?.[0]?.plain_text || titleProp?.title?.[0]?.plain_text || 'Untitled';
 }

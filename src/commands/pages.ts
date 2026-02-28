@@ -16,7 +16,7 @@ import {
   validateAtLeastOne,
 } from '../lib/option-validation';
 import { pageToMarkdownTree, sanitizeFilename, writeToFile } from '../lib/markdown';
-import { Block, BlockContent, PageProperties } from '../lib/types';
+import { Block, BlockContent, PageProperties, PropertyValue, Page } from '../lib/types';
 import { fetchBlockTree } from '../lib/blocks-tree';
 
 // Maximum length for title and content fields
@@ -192,11 +192,11 @@ function createPageUpdateCommand(): Command {
 
           const client = new NotionClient();
 
-          const properties: any = {};
+          const properties: PageProperties = {};
           if (options.title) {
             const page = await client.getPage(pageId);
             const titleProperty = Object.entries(page.properties || {}).find(
-              ([, value]: [string, any]) => value?.type === 'title'
+              ([, value]) => (value as PropertyValue).type === 'title'
             )?.[0];
 
             if (!titleProperty) {
@@ -208,7 +208,7 @@ function createPageUpdateCommand(): Command {
             };
           }
 
-          const updates: any = { properties };
+          const updates: Record<string, unknown> = { properties };
           if (options.archived !== undefined) {
             updates.archived = options.archived;
           }
@@ -269,7 +269,7 @@ function createPageListCommand(): Command {
 
           console.log(`Found ${result.results.length} page(s):\n`);
 
-          result.results.forEach((page: any) => {
+          result.results.forEach((page: Page) => {
             printPageSummary(page);
           });
 

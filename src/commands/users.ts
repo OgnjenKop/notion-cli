@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { NotionClient } from '../lib/client';
 import { formatOutput, printUserSummary, throwCommandError } from '../lib/output';
 import { validatePositiveInteger } from '../lib/option-validation';
+import type { User } from '../lib/types';
 
 export function createUsersCommand(): Command {
   const users = new Command('users')
@@ -41,7 +42,7 @@ function createUserListCommand(): Command {
 
         console.log(`Found ${result.results.length} user(s):\n`);
 
-        result.results.forEach((user: any) => {
+        result.results.forEach((user: User) => {
           printUserSummary(user);
         });
 

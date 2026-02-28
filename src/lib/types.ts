@@ -178,6 +178,16 @@ export interface Database extends NotionObject {
 }
 
 /**
+ * Status property group
+ */
+export interface StatusGroup {
+  id: string;
+  name: string;
+  color?: string;
+  option_ids: string[];
+}
+
+/**
  * Property schema for databases
  */
 export interface PropertySchema {
@@ -189,7 +199,7 @@ export interface PropertySchema {
   number?: { format: string };
   select?: { options: { id: string; name: string; color?: string }[] };
   multi_select?: { options: { id: string; name: string; color?: string }[] };
-  status?: { options: { id: string; name: string; color?: string }[]; groups: any[] };
+  status?: { options: { id: string; name: string; color?: string }[]; groups: StatusGroup[] };
   date?: Record<string, never>;
   checkbox?: Record<string, never>;
   url?: Record<string, never>;
@@ -315,7 +325,7 @@ export interface ListResponse<T> {
   next_cursor: string | null;
   has_more: boolean;
   type?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

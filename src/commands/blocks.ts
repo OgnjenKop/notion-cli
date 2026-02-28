@@ -432,7 +432,7 @@ function createBlockUpdateCommand(): Command {
             throw new Error(`Block type ${blockType} does not support checked state updates.`);
           }
 
-          const typePayload: any = {};
+          const typePayload: Record<string, unknown> = {};
 
           // Handle content and color
           if (options.content !== undefined) {

@@ -104,9 +104,9 @@ export function richTextToMarkdown(richText: RichTextItem[]): string {
     .map((rt) => {
       const baseText = rt.plain_text ?? rt.text?.content ?? '';
       let text = escapeLineStartMarkdown(escapeInlineMarkdown(baseText));
-      const annotations = (rt.annotations as any) || {};
+      const annotations = rt.annotations;
 
-      if (annotations.code) {
+      if (annotations?.code) {
         text = wrapInlineCode(baseText);
         if (rt.text?.link?.url) {
           text = `[${text}](${rt.text.link.url})`;
@@ -114,16 +114,16 @@ export function richTextToMarkdown(richText: RichTextItem[]): string {
         return text;
       }
 
-      if (annotations.bold) {
+      if (annotations?.bold) {
         text = `**${text}**`;
       }
-      if (annotations.italic) {
+      if (annotations?.italic) {
         text = `*${text}*`;
       }
-      if (annotations.strikethrough) {
+      if (annotations?.strikethrough) {
         text = `~~${text}~~`;
       }
-      if (annotations.underline) {
+      if (annotations?.underline) {
         text = `<u>${text}</u>`;
       }
 

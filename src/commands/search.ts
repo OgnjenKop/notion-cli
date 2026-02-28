@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { NotionClient, SearchOptions } from '../lib/client';
 import { formatOutput, printSuccess, throwCommandError } from '../lib/output';
 import { validatePositiveInteger, validateEnum } from '../lib/option-validation';
+import type { Page, Database } from '../lib/types';
 
 export function createSearchCommand(): Command {
   const search = new Command('search')
@@ -60,14 +61,17 @@ export function createSearchCommand(): Command {
           printSuccess(`Found ${result.results.length} result(s)`, options?.quiet);
           console.log('');
 
-          result.results.forEach((item: any) => {
+          result.results.forEach((item: Page | Database) => {
+            const pageOrDb = item as Page | Database;
+            const titleProp = pageOrDb.properties?.title?.title;
+            const nameProp = pageOrDb.properties?.Name?.title;
             const title =
-              item.properties?.title?.title?.[0]?.plain_text ||
-              item.properties?.Name?.title?.[0]?.plain_text ||
+              (Array.isArray(titleProp) && titleProp[0]?.plain_text) ||
+              (Array.isArray(nameProp) && nameProp[0]?.plain_text) ||
               'Untitled';
-            const type = item.object;
-            const id = item.id;
-            const url = item.url || 'N/A';
+            const type = pageOrDb.object;
+            const id = pageOrDb.id;
+            const url = (pageOrDb as Page).url || 'N/A';
 
             console.log(`[${type.toUpperCase()}] ${title}`);
             console.log(`  ID: ${id}`);

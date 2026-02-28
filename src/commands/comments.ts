@@ -3,6 +3,7 @@ import { NotionClient } from '../lib/client';
 import { formatOutput, printSuccess, throwCommandError } from '../lib/output';
 import { validateStringLength, validateOnlyOne } from '../lib/option-validation';
 import { validateId } from '../lib/validation';
+import type { Comment } from '../lib/types';
 
 export function createCommentsCommand(): Command {
   const comments = new Command('comments')
@@ -95,7 +96,7 @@ function createCommentListCommand(): Command {
 
         console.log(`Found ${result.results.length} comment(s):\n`);
 
-        result.results.forEach((comment: any) => {
+        result.results.forEach((comment: Comment) => {
           const text = comment.rich_text?.[0]?.plain_text || '[no text]';
           const id = comment.id;
           const createdBy = comment.created_by?.name || 'Unknown';

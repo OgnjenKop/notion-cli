@@ -9,7 +9,7 @@ import {
 } from '../lib/output';
 import { parseJson, validateId } from '../lib/validation';
 import { validatePositiveInteger, validateStringLength } from '../lib/option-validation';
-import type { DatabaseProperties } from '../lib/types';
+import type { DatabaseProperties, Page, Database } from '../lib/types';
 
 export function createDatabasesCommand(): Command {
   const databases = new Command('databases')
@@ -77,7 +77,7 @@ function createDatabaseQueryCommand(): Command {
           });
 
           const client = new NotionClient();
-          const query: any = {
+          const query: Record<string, unknown> = {
             page_size: pageSize,
           };
 
@@ -108,7 +108,7 @@ function createDatabaseQueryCommand(): Command {
 
           console.log(`Found ${result.results.length} result(s):\n`);
 
-          result.results.forEach((page: any) => {
+          result.results.forEach((page: Page) => {
             printPageSummary(page);
           });
 
@@ -148,8 +148,10 @@ function createDatabaseListCommand(): Command {
 
         console.log(`Found ${result.results.length} database(s):\n`);
 
-        result.results.forEach((db: any) => {
-          printDatabaseSummary(db);
+        result.results.forEach((item) => {
+          if (item.object === 'database') {
+            printDatabaseSummary(item as Database);
+          }
         });
       } catch (error) {
         throwCommandError('Error listing databases', error);
