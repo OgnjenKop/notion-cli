@@ -7,15 +7,10 @@
  */
 export class NotionError extends Error {
   public readonly code: string;
-  public readonly status?: number | undefined;
+  public readonly status?: number;
   public readonly response?: unknown;
 
-  constructor(
-    message: string,
-    code: string = 'NOTION_ERROR',
-    status?: number | undefined,
-    response?: unknown
-  ) {
+  constructor(message: string, code: string = 'NOTION_ERROR', status?: number, response?: unknown) {
     super(message);
     this.name = 'NotionError';
     this.code = code;
@@ -85,9 +80,9 @@ export class NotFoundError extends NotionError {
  * Error thrown when rate limit is exceeded
  */
 export class RateLimitError extends NotionError {
-  public readonly retryAfter?: number | undefined;
+  public readonly retryAfter?: number;
 
-  constructor(message: string = 'Rate limit exceeded', retryAfter?: number | undefined) {
+  constructor(message: string = 'Rate limit exceeded', retryAfter?: number) {
     super(message, 'RATE_LIMIT_EXCEEDED', 429);
     this.name = 'RateLimitError';
     if (retryAfter !== undefined) {
@@ -162,19 +157,19 @@ export class FileError extends NotionError {
  */
 export class CommandExecutionError extends Error {
   public readonly title: string;
-  public readonly detail?: string | undefined;
+  public readonly detail?: string;
   public readonly exitCode: number;
-  public readonly code?: string | undefined;
-  public readonly status?: number | undefined;
+  public readonly code?: string;
+  public readonly status?: number;
   public readonly cause?: unknown;
 
   constructor(
     title: string,
-    detail?: string | undefined,
+    detail?: string,
     options?: {
       exitCode?: number;
-      code?: string | undefined;
-      status?: number | undefined;
+      code?: string;
+      status?: number;
       cause?: unknown;
     }
   ) {

@@ -47,7 +47,10 @@ export function loadConfig(): Config {
 
 export function saveConfig(config: Config): void {
   ensureConfigDir();
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), {
+    encoding: 'utf-8',
+    mode: 0o600, // Owner read/write only (secure)
+  });
 }
 
 export function getToken(): string | undefined {

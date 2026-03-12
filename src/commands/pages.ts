@@ -471,7 +471,7 @@ function createPageBatchExportCommand(): Command {
               console.log(`  ✓ ${childTitle}`);
             } catch (error) {
               hasErrors = true;
-              console.log(`  ✗ ${childTitle}: ${getErrorMessage(error)}`);
+              console.error(`  ✗ ${childTitle}: ${getErrorMessage(error)}`);
             }
           }
 

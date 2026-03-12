@@ -59,7 +59,7 @@ function normalizeDetail(title: string, detail?: string): string | undefined {
 function renderError(
   title: string,
   detail?: string,
-  options?: { exitCode?: number; code?: string | undefined; status?: number | undefined }
+  options?: { exitCode?: number; code?: string; status?: number }
 ): void {
   const safeTitle = redactSensitiveText(title);
   const safeDetail = detail ? redactSensitiveText(detail) : detail;
@@ -107,11 +107,16 @@ async function main(): Promise<void> {
     await program.parseAsync(process.argv);
   } catch (error) {
     if (error instanceof CommandExecutionError) {
-      renderError(error.title, error.detail, {
+      const errorOptions: { exitCode?: number; code?: string; status?: number } = {
         exitCode: error.exitCode,
-        code: error.code,
-        status: error.status,
-      });
+      };
+      if (error.code !== undefined) {
+        errorOptions.code = error.code;
+      }
+      if (error.status !== undefined) {
+        errorOptions.status = error.status;
+      }
+      renderError(error.title, error.detail, errorOptions);
       process.exitCode = error.exitCode;
       return;
     }

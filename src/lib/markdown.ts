@@ -138,50 +138,56 @@ export function richTextToMarkdown(richText: RichTextItem[]): string {
 
 /**
  * Convert a Notion block to markdown string
+ * @param block - Block object to convert
+ * @returns Markdown string representation of the block
  */
 export function blockToMarkdown(block: Block): string {
   const type = block.type;
-  const content = (block as any)[type];
+  const content = block[type as keyof Block];
 
-  if (!content) {
+  if (!content || typeof content !== 'object') {
     return '';
   }
 
+  const blockContent = content as Record<string, unknown>;
+
   switch (type) {
     case 'paragraph': {
-      const paraText = richTextToMarkdown(content.rich_text);
+      const paraText = richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[]);
       return paraText ? paraText + '\n\n' : '';
     }
 
     case 'heading_1':
-      return `# ${richTextToMarkdown(content.rich_text)}\n\n`;
+      return `# ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n\n`;
 
     case 'heading_2':
-      return `## ${richTextToMarkdown(content.rich_text)}\n\n`;
+      return `## ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n\n`;
 
     case 'heading_3':
-      return `### ${richTextToMarkdown(content.rich_text)}\n\n`;
+      return `### ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n\n`;
 
     case 'bulleted_list_item':
-      return `- ${richTextToMarkdown(content.rich_text)}\n`;
+      return `- ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n`;
 
     case 'numbered_list_item':
-      return `1. ${richTextToMarkdown(content.rich_text)}\n`;
+      return `1. ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n`;
 
     case 'to_do': {
-      const checkbox = content.checked ? '[x]' : '[ ]';
-      return `- ${checkbox} ${richTextToMarkdown(content.rich_text)}\n`;
+      const todoContent = blockContent as { checked?: boolean; rich_text?: RichTextItem[] };
+      const checkbox = todoContent.checked ? '[x]' : '[ ]';
+      return `- ${checkbox} ${richTextToMarkdown(todoContent.rich_text ?? [])}\n`;
     }
 
     case 'quote':
-      return `> ${richTextToMarkdown(content.rich_text)}\n\n`;
+      return `> ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n\n`;
 
     case 'callout':
-      return `> 💡 ${richTextToMarkdown(content.rich_text)}\n\n`;
+      return `> 💡 ${richTextToMarkdown((blockContent.rich_text ?? []) as RichTextItem[])}\n\n`;
 
     case 'code': {
-      const lang = content.language || 'text';
-      const codeText = richTextToPlainText(content.rich_text);
+      const codeContent = blockContent as { language?: string; rich_text?: RichTextItem[] };
+      const lang = codeContent.language ?? 'text';
+      const codeText = richTextToPlainText(codeContent.rich_text ?? []);
       return wrapCodeBlock(codeText, lang);
     }
 
@@ -189,56 +195,81 @@ export function blockToMarkdown(block: Block): string {
       return '\n---\n\n';
 
     case 'toggle': {
-      const toggleText = richTextToMarkdown(content.rich_text);
-      // Use collapsible details element for toggle blocks (GitHub/markdown compatible)
+      const toggleContent = blockContent as { rich_text?: RichTextItem[] };
+      const toggleText = richTextToMarkdown(toggleContent.rich_text ?? []);
       return `<details><summary>${toggleText}</summary></details>\n\n`;
     }
 
     case 'image': {
-      const imageUrl = content.external?.url || content.file?.url || '';
-      const imageCaption = content.caption ? richTextToMarkdown(content.caption) : '';
+      const imageContent = blockContent as {
+        external?: { url: string };
+        file?: { url: string };
+        caption?: RichTextItem[];
+      };
+      const imageUrl = imageContent.external?.url ?? imageContent.file?.url ?? '';
+      const imageCaption = imageContent.caption ? richTextToMarkdown(imageContent.caption) : '';
       return `![${imageCaption}](${imageUrl})\n\n`;
     }
 
-    case 'embed':
-      return `[Embed](${content.url})\n\n`;
+    case 'embed': {
+      const embedContent = blockContent as { url: string };
+      return `[Embed](${embedContent.url})\n\n`;
+    }
 
     case 'bookmark': {
-      const bookmarkCaption = content.caption ? richTextToMarkdown(content.caption) : '';
-      return `[🔖 ${bookmarkCaption || content.url}](${content.url})\n\n`;
+      const bookmarkContent = blockContent as { url: string; caption?: RichTextItem[] };
+      const bookmarkCaption = bookmarkContent.caption
+        ? richTextToMarkdown(bookmarkContent.caption)
+        : '';
+      return `[🔖 ${bookmarkCaption || bookmarkContent.url}](${bookmarkContent.url})\n\n`;
     }
 
     case 'video': {
-      const videoUrl = content.external?.url || content.file?.url || '';
+      const videoContent = blockContent as {
+        external?: { url: string };
+        file?: { url: string };
+      };
+      const videoUrl = videoContent.external?.url ?? videoContent.file?.url ?? '';
       return `[Video](${videoUrl})\n\n`;
     }
 
     case 'pdf': {
-      const pdfUrl = content.external?.url || content.file?.url || '';
+      const pdfContent = blockContent as {
+        external?: { url: string };
+        file?: { url: string };
+      };
+      const pdfUrl = pdfContent.external?.url ?? pdfContent.file?.url ?? '';
       return `[PDF](${pdfUrl})\n\n`;
     }
 
     case 'file': {
-      const fileName = content.caption ? richTextToMarkdown(content.caption) : 'File';
-      const fileUrl = content.external?.url || content.file?.url || '';
+      const fileContent = blockContent as {
+        caption?: RichTextItem[];
+        external?: { url: string };
+        file?: { url: string };
+      };
+      const fileName = fileContent.caption ? richTextToMarkdown(fileContent.caption) : 'File';
+      const fileUrl = fileContent.external?.url ?? fileContent.file?.url ?? '';
       return `[📎 ${fileName}](${fileUrl})\n\n`;
     }
 
     case 'audio': {
-      const audioUrl = content.external?.url || content.file?.url || '';
+      const audioContent = blockContent as { external?: { url: string }; file?: { url: string } };
+      const audioUrl = audioContent.external?.url ?? audioContent.file?.url ?? '';
       return `[Audio](${audioUrl})\n\n`;
     }
 
     case 'table': {
-      // Table header - actual rows come as children
-      const tableWidth = content.table_width || 2;
+      const tableContent = blockContent as { table_width?: number };
+      const tableWidth = tableContent.table_width ?? 2;
       const header = `| ${Array(tableWidth).fill(' ').join(' | ')} |`;
       const separator = `| ${Array(tableWidth).fill('---').join(' | ')} |`;
       return `${header}\n${separator}\n`;
     }
 
     case 'table_row': {
-      const cells = content.cells || [];
+      const tableRowContent = blockContent as { cells?: RichTextItem[][] };
+      const cells = tableRowContent.cells ?? [];
       const cellTexts = cells.map((cell: RichTextItem[]) => (cell ? richTextToMarkdown(cell) : ''));
       return `| ${cellTexts.join(' | ')} |\n`;
     }
@@ -259,34 +290,46 @@ export function blockToMarkdown(block: Block): string {
       return `<!-- Table of Contents -->\n\n`;
 
     case 'link_to_page': {
-      const pageId = content.page_id;
+      const linkPageContent = blockContent as { page_id?: string };
+      const pageId = linkPageContent.page_id ?? '';
       return `[Link to page](https://notion.so/${pageId})\n\n`;
     }
 
-    case 'link_preview':
-      return `[Preview](${content.url})\n\n`;
+    case 'link_preview': {
+      const linkPreviewContent = blockContent as { url: string };
+      return `[Preview](${linkPreviewContent.url})\n\n`;
+    }
 
-    case 'template':
-      return `<!-- Template: ${richTextToMarkdown(content.rich_text)} -->\n\n`;
+    case 'template': {
+      const templateContent = blockContent as { rich_text?: RichTextItem[] };
+      return `<!-- Template: ${richTextToMarkdown(templateContent.rich_text ?? [])} -->\n\n`;
+    }
 
     case 'child_page': {
-      const childTitle = content.title || 'Untitled';
+      const childPageContent = blockContent as { title?: string };
+      const childTitle = childPageContent.title ?? 'Untitled';
       return `📄 **${childTitle}**\n\n`;
     }
 
     case 'child_database': {
-      const dbTitle = content.title || 'Untitled Database';
+      const childDbContent = blockContent as { title?: string };
+      const dbTitle = childDbContent.title ?? 'Untitled Database';
       return `🗄️ **${dbTitle}**\n\n`;
     }
 
     case 'equation': {
-      const equation = content.expression || content.equation?.expression || '';
+      const equationContent = blockContent as {
+        expression?: string;
+        equation?: { expression: string };
+      };
+      const equation = equationContent.expression ?? equationContent.equation?.expression ?? '';
       return `$${equation}$\n\n`;
     }
 
     default: {
       // Unknown block type - try to extract any text
-      const text = richTextToMarkdown(content.rich_text);
+      const defaultContent = blockContent as { rich_text?: RichTextItem[] };
+      const text = richTextToMarkdown(defaultContent.rich_text ?? []);
       return text ? text + '\n\n' : '';
     }
   }
@@ -301,22 +344,22 @@ export function blocksToMarkdown(
 
   for (const block of blocks) {
     if (block.type === 'table') {
-      const content = (block as any).table;
-      const tableWidth = content?.table_width || 2;
+      const tableContent = block.table as { table_width?: number } | undefined;
+      const tableWidth = tableContent?.table_width ?? 2;
       const header = `| ${Array(tableWidth).fill(' ').join(' | ')} |`;
       const separator = `| ${Array(tableWidth).fill('---').join(' | ')} |`;
       output += `${header}\n${separator}\n`;
 
-      const childBlocks = childrenById[block.id] || [];
+      const childBlocks = childrenById[block.id] ?? [];
       output += blocksToMarkdown(childBlocks, childrenById, depth);
       output += '\n';
       continue;
     }
 
     if (block.type === 'toggle') {
-      const content = (block as any).toggle;
-      const summary = content ? richTextToMarkdown(content.rich_text) : '';
-      const childMarkdown = blocksToMarkdown(childrenById[block.id] || [], childrenById, depth + 1);
+      const toggleContent = block.toggle as { rich_text?: RichTextItem[] } | undefined;
+      const summary = toggleContent ? richTextToMarkdown(toggleContent.rich_text ?? []) : '';
+      const childMarkdown = blocksToMarkdown(childrenById[block.id] ?? [], childrenById, depth + 1);
       output += `<details><summary>${summary}</summary>\n\n${childMarkdown}</details>\n\n`;
       continue;
     }
@@ -392,6 +435,9 @@ export function pageToMarkdownTree(
 
 /**
  * Sanitize a string for use as filename
+ * @param name - The filename to sanitize
+ * @param maxLength - Maximum length of the filename (default: 100)
+ * @returns Sanitized filename safe for filesystem use
  */
 export function sanitizeFilename(name: string, maxLength: number = 100): string {
   return name
@@ -405,6 +451,8 @@ export function sanitizeFilename(name: string, maxLength: number = 100): string 
 
 /**
  * Write content to a file, creating directories if needed
+ * @param filePath - Full path to the output file
+ * @param content - Content to write to the file
  */
 export function writeToFile(filePath: string, content: string): void {
   const dir = path.dirname(filePath);

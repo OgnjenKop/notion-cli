@@ -106,7 +106,7 @@ describe('Config Module', () => {
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/home/user/.notion-cli/config.json',
         JSON.stringify(configData, null, 2),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
     });
 
@@ -160,7 +160,7 @@ describe('Config Module', () => {
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/home/user/.notion-cli/config.json',
         expect.stringContaining('"token": "new-token"'),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
     });
 
@@ -176,7 +176,7 @@ describe('Config Module', () => {
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/home/user/.notion-cli/config.json',
         expect.not.stringContaining('"token"'),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
     });
   });
@@ -210,7 +210,7 @@ describe('Config Module', () => {
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/home/user/.notion-cli/config.json',
         expect.stringContaining('"version": "2022-06-28"'),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
     });
   });
@@ -257,7 +257,7 @@ describe('Config Module', () => {
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/home/user/.notion-cli/config.json',
         expect.stringContaining('"verbose": true'),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
     });
   });

@@ -37,12 +37,17 @@ export function createSearchCommand(): Command {
           }
 
           const client = new NotionClient();
-          const searchOptions: SearchOptions = {
-            query,
-            filter: options?.type ? { property: 'object', value: options.type } : undefined,
-            startCursor: options?.startCursor,
-            pageSize,
-          };
+          const searchOptions: SearchOptions = {};
+          if (query !== undefined) {
+            searchOptions.query = query;
+          }
+          if (options?.type) {
+            searchOptions.filter = { property: 'object', value: options.type };
+          }
+          if (options?.startCursor) {
+            searchOptions.startCursor = options.startCursor;
+          }
+          searchOptions.pageSize = pageSize;
 
           const result = await client.search(searchOptions);
 

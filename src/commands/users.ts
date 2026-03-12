@@ -94,7 +94,7 @@ function createUserMeCommand(): Command {
           console.log(`  Name: ${user.name}`);
           console.log(`  ID: ${user.id}`);
           console.log(`  Type: ${user.type}`);
-          console.log(`  Workspace Name: ${user.bot?.workspace_name || 'N/A'}`);
+          console.log(`  Workspace Name: ${user.bot?.workspace_name ?? 'N/A'}`);
         }
       } catch (error) {
         throwCommandError('Error getting bot info', error);

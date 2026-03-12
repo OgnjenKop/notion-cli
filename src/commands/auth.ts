@@ -65,7 +65,7 @@ function createStatusCommand(): Command {
         const client = new NotionClient();
         const user = await client.getMe();
         console.log(`\nConnected as: ${user.name} (${user.type})`);
-        console.log(`Workspace: ${user.bot?.workspace_name || 'N/A'}`);
+        console.log(`Workspace: ${user.bot?.workspace_name ?? 'N/A'}`);
       } catch (error) {
         throwCommandError('Connection failed', error);
       }

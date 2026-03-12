@@ -66,11 +66,12 @@ export function printInfo(message: string, quiet?: boolean): void {
 
 /**
  * Print a page summary (used across multiple commands)
+ * @param page - Page object to print summary for
  */
 export function printPageSummary(page: Page): void {
   const title = getPageTitle(page);
   const id = page.id;
-  const url = page.url || 'N/A';
+  const url = page.url ?? 'N/A';
   const statusProperty = page.properties?.Status as PropertyValue | undefined;
   const status =
     (statusProperty?.type === 'status' && statusProperty.status?.name) ||
@@ -88,21 +89,24 @@ export function printPageSummary(page: Page): void {
 
 /**
  * Extract page title from various property formats
+ * @param page - Page object to extract title from
+ * @returns Page title or 'Untitled' if not found
  */
 export function getPageTitle(page: Page): string {
   const nameProp = page.properties?.Name as PropertyValue | undefined;
   const titleProp = page.properties?.title as PropertyValue | undefined;
 
-  return nameProp?.title?.[0]?.plain_text || titleProp?.title?.[0]?.plain_text || 'Untitled';
+  return nameProp?.title?.[0]?.plain_text ?? titleProp?.title?.[0]?.plain_text ?? 'Untitled';
 }
 
 /**
  * Print a database summary
+ * @param db - Database object to print summary for
  */
 export function printDatabaseSummary(db: Database): void {
-  const title = db.title?.[0]?.plain_text || 'Untitled Database';
+  const title = db.title?.[0]?.plain_text ?? 'Untitled Database';
   const id = db.id;
-  const url = db.url || 'N/A';
+  const url = db.url ?? 'N/A';
   const properties = Object.keys(db.properties || {}).join(', ');
 
   console.log(`[DATABASE] ${title}`);
@@ -114,12 +118,13 @@ export function printDatabaseSummary(db: Database): void {
 
 /**
  * Print a user summary
+ * @param user - User object to print summary for
  */
 export function printUserSummary(user: User): void {
-  const name = user.name || 'Unknown';
+  const name = user.name ?? 'Unknown';
   const id = user.id;
   const type = user.type;
-  const email = user.person?.email || user.bot?.email || 'N/A';
+  const email = user.person?.email ?? user.bot?.email ?? 'N/A';
 
   console.log(`[USER] ${name}`);
   console.log(`  ID: ${id}`);
@@ -144,18 +149,20 @@ export function printBlockSummary(block: Block): void {
 
 /**
  * Extract block content for display
+ * @param block - Block object to extract content from
+ * @returns Human-readable block content string
  */
 export function getBlockContent(block: Block): string {
   const type = block.type;
-  const blockType = (block as any)[type];
+  const blockType = block[type as keyof Block];
 
-  if (!blockType) {
+  if (!blockType || typeof blockType !== 'object') {
     return '';
   }
 
-  if (blockType.rich_text) {
+  if ('rich_text' in blockType && Array.isArray(blockType.rich_text)) {
     return blockType.rich_text
-      .map((rt: RichTextItem) => rt.plain_text || rt.text?.content || '')
+      .map((rt: RichTextItem) => rt.plain_text ?? rt.text?.content ?? '')
       .join('');
   }
 
@@ -163,10 +170,12 @@ export function getBlockContent(block: Block): string {
     return '---';
   }
   if (type === 'image') {
-    return blockType.external?.url || blockType.file?.url || '[image]';
+    const imageBlock = blockType as { external?: { url: string }; file?: { url: string } };
+    return imageBlock.external?.url ?? imageBlock.file?.url ?? '[image]';
   }
   if (type === 'embed' || type === 'bookmark') {
-    return blockType.url || '';
+    const linkBlock = blockType as { url?: string };
+    return linkBlock.url ?? '';
   }
 
   return '';
@@ -191,7 +200,7 @@ export function getErrorMessage(error: unknown): string {
 export function throwCommandError(
   title: string,
   error: unknown,
-  options?: { exitCode?: number; code?: string | undefined; status?: number | undefined }
+  options?: { exitCode?: number; code?: string; status?: number }
 ): never {
   if (error instanceof CommandExecutionError) {
     throw error;
@@ -201,18 +210,32 @@ export function throwCommandError(
 
   if (error instanceof NotionError) {
     const exitCode = options?.exitCode ?? (error.code === 'VALIDATION_ERROR' ? 2 : 1);
-    throw new CommandExecutionError(title, detail, {
+    const errorOptions: { exitCode?: number; code?: string; status?: number; cause?: unknown } = {
       exitCode,
-      code: options?.code || error.code,
-      status: options?.status ?? error.status,
       cause: error,
-    });
+    };
+    if (options?.code !== undefined) {
+      errorOptions.code = options.code;
+    } else if (error.code !== undefined) {
+      errorOptions.code = error.code;
+    }
+    if (options?.status !== undefined) {
+      errorOptions.status = options.status;
+    } else if (error.status !== undefined) {
+      errorOptions.status = error.status;
+    }
+    throw new CommandExecutionError(title, detail, errorOptions);
   }
 
-  throw new CommandExecutionError(title, detail, {
+  const errorOptions: { exitCode?: number; code?: string; status?: number; cause?: unknown } = {
     exitCode: options?.exitCode ?? 1,
-    code: options?.code,
-    status: options?.status,
     cause: error,
-  });
+  };
+  if (options?.code !== undefined) {
+    errorOptions.code = options.code;
+  }
+  if (options?.status !== undefined) {
+    errorOptions.status = options.status;
+  }
+  throw new CommandExecutionError(title, detail, errorOptions);
 }

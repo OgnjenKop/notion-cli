@@ -10,6 +10,36 @@ import {
   throwCommandError,
 } from '../lib/output';
 
+/**
+ * Batch operation configuration
+ */
+interface BatchOperation {
+  action: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Batch file structure
+ */
+interface BatchFile {
+  operations: BatchOperation[];
+  stopOnError?: boolean;
+}
+
+/**
+ * Type guard to validate batch operation structure
+ */
+function isValidBatchFile(data: unknown): data is BatchFile {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  const obj = data as Record<string, unknown>;
+  return (
+    Array.isArray(obj.operations) &&
+    obj.operations.every((op) => typeof op === 'object' && op !== null && 'action' in op)
+  );
+}
+
 export function createBatchCommand(): Command {
   const batch = new Command('batch')
     .description('Execute batch operations')
@@ -29,15 +59,19 @@ function createBatchRunCommand(): Command {
       async (options: { file: string; dryRun?: boolean; json?: boolean; quiet?: boolean }) => {
         try {
           // Read and parse the batch file
-          let batchData: any;
+          let batchData: BatchFile;
           try {
             const content = fs.readFileSync(options.file, 'utf-8');
-            batchData = JSON.parse(content);
+            const parsed = JSON.parse(content);
+            if (!isValidBatchFile(parsed)) {
+              throw new Error('Invalid batch file format');
+            }
+            batchData = parsed;
           } catch (e: any) {
             throwCommandError('Error reading batch file', e, { code: 'USAGE_ERROR' });
           }
 
-          const operations = batchData.operations || [];
+          const operations = batchData.operations ?? [];
           if (operations.length === 0) {
             throwCommandError('Validation error', 'No operations found in batch file', {
               code: 'USAGE_ERROR',
@@ -53,7 +87,7 @@ function createBatchRunCommand(): Command {
           let hasOperationErrors = false;
 
           for (let i = 0; i < operations.length; i++) {
-            const op = operations[i];
+            const op = operations[i]!;
             const opNum = i + 1;
 
             if (!options.quiet) {

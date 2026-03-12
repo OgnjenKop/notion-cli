@@ -99,7 +99,7 @@ function createCommentListCommand(): Command {
         result.results.forEach((comment: Comment) => {
           const text = comment.rich_text?.[0]?.plain_text || '[no text]';
           const id = comment.id;
-          const createdBy = comment.created_by?.name || 'Unknown';
+          const createdBy = comment.created_by?.name ?? 'Unknown';
           const createdTime = comment.created_time
             ? new Date(comment.created_time).toLocaleDateString()
             : 'N/A';

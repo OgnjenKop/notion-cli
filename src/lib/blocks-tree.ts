@@ -26,6 +26,15 @@ async function fetchBlockChildrenAll(
   return allBlocks;
 }
 
+/**
+ * Fetch all blocks from a page/block with automatic pagination.
+ * Uses DFS (stack-based) traversal for O(1) queue operations instead of BFS.
+ * This is more efficient for deeply nested block structures.
+ * @param client - Notion API client
+ * @param rootId - Page or block ID to fetch
+ * @param pageSize - Number of blocks per page (default: 100)
+ * @returns Object containing blocks array and children-by-id map
+ */
 export async function fetchBlockTree(
   client: NotionClient,
   rootId: string,
@@ -34,13 +43,16 @@ export async function fetchBlockTree(
   const childrenById: Record<string, Block[]> = {};
   const queue: string[] = [rootId];
 
+  // Use pop() for O(1) stack operations instead of shift() which is O(n)
+  // This changes traversal from BFS to DFS, but correctness is preserved
+  // since all blocks are fetched and the childrenById map maintains relationships
   while (queue.length > 0) {
-    const currentId = queue.shift()!;
+    const currentId = queue.pop()!;
     const children = await fetchBlockChildrenAll(client, currentId, pageSize);
     childrenById[currentId] = children;
 
     for (const child of children) {
-      if (child.has_children) {
+      if (child.has_children && child.id) {
         queue.push(child.id);
       }
     }

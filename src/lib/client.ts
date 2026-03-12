@@ -18,6 +18,7 @@ import { NotionError, createErrorFromStatus, extractErrorInfo } from './errors';
 import { redactSensitiveText, stringifyRedacted } from './redaction';
 
 const BASE_URL = 'https://api.notion.com/v1';
+const API_TIMEOUT_MS = 30000; // 30 second timeout for API requests
 const RATE_LIMIT_DELAY_MS = 350; // Notion allows ~3 requests/second, use 350ms for safety
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
@@ -50,13 +51,14 @@ let metrics: ApiMetrics = {
 
 /**
  * Get current API metrics
+ * @returns Copy of current API performance metrics
  */
 export function getApiMetrics(): ApiMetrics {
   return { ...metrics };
 }
 
 /**
- * Reset API metrics
+ * Reset API metrics to initial values
  */
 export function resetApiMetrics(): void {
   metrics = {
@@ -71,10 +73,10 @@ export function resetApiMetrics(): void {
 }
 
 export interface SearchOptions {
-  query?: string | undefined;
-  filter?: { property: string; value: string } | undefined;
-  startCursor?: string | undefined;
-  pageSize?: number | undefined;
+  query?: string;
+  filter?: { property: string; value: string };
+  startCursor?: string;
+  pageSize?: number;
 }
 
 /**
@@ -124,6 +126,7 @@ export class NotionClient {
 
     this.client = axios.create({
       baseURL: BASE_URL,
+      timeout: API_TIMEOUT_MS,
       headers: {
         Authorization: `Bearer ${token}`,
         'Notion-Version': version,

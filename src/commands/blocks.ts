@@ -308,7 +308,7 @@ function createBlockAppendCommand(): Command {
           const result = await client.appendBlockChildren(blockId, childrenBlocks);
 
           printSuccess('Block appended successfully!', options?.quiet);
-          console.log(`  ID: ${result.results?.[0]?.id || 'N/A'}`);
+          console.log(`  ID: ${result.results?.[0]?.id ?? 'N/A'}`);
 
           if (options?.json) {
             console.log(formatOutput(result, { json: true }));
