@@ -4,9 +4,9 @@
 [![License: ISC](https://img.shields.io/badge/License-ISC-yellow.svg)](https://opensource.org/licenses/ISC)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 
-A powerful, production-ready command-line interface for interacting with the [Notion API](https://developers.notion.com/). Automate your Notion workspace, manage pages and databases, and manipulate content—all from your terminal.
+An unofficial, open source command-line interface for interacting with the [Notion API](https://developers.notion.com/). Automate your Notion workspace, manage pages and databases, and work with content from your terminal.
 
-![Notion CLI Demo](https://img.shields.io/badge/Status-Production%20Ready-success)
+> This project is not affiliated with or endorsed by Notion.
 
 ## ✨ Features
 
@@ -29,7 +29,7 @@ A powerful, production-ready command-line interface for interacting with the [No
 
 ### Prerequisites
 
-- Node.js 14.0.0 or higher
+- Node.js 18.0.0 or higher
 - npm or yarn
 - A Notion account
 
@@ -37,7 +37,7 @@ A powerful, production-ready command-line interface for interacting with the [No
 
 ```bash
 # Clone the repository
-git clone https://github.com/OgnjenKop/notion-cli.git
+git clone https://github.com/notion-cli/notion-cli.git
 cd notion-cli
 
 # Install dependencies
@@ -596,7 +596,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📬 Support
 
-- **Issues:** [GitHub Issues](https://github.com/OgnjenKop/notion-cli/issues)
+- **Issues:** [GitHub Issues](https://github.com/notion-cli/notion-cli/issues)
 - **Notion API Docs:** [https://developers.notion.com](https://developers.notion.com)
 
 ---
